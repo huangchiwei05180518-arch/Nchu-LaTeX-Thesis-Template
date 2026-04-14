@@ -1,0 +1,77 @@
+% !TEX TS-program = xelatex
+% !BIB program = bibtex
+% !TEX encoding = UTF-8 Unicode
+
+\documentclass[
+  twoside,
+  openright,
+  degree    = master,
+  language  = chinese,
+  fontset   = template,
+  watermark = false,
+  doi       = false,
+]{nchuthesis}
+
+\input{nchusetup}
+
+\renewcommand{\figurename}{圖}
+\renewcommand{\tablename}{表}
+
+\begin{document}
+
+% 1. 封面
+\makecover
+
+% 2. 空白頁
+\newpage\thispagestyle{empty}\mbox{}
+
+% 3. 書名頁
+\makecover
+\thispagestyle{empty} 
+
+% 4. 審核頁 (掃描檔)
+% \includepdf{a4_approval.pdf} 
+
+% 5. 授權頁 (掃描檔)
+% \includepdf{a4_authorization.pdf} 
+
+% 6. 致謝 (此頁將不會有頁碼)
+\cleardoublepage
+\pagestyle{empty} 
+\input{front/acknowledgement}
+
+% --- 從這裡開始使用羅馬數字頁碼 i, ii, iii ---
+\cleardoublepage
+\pagestyle{plain}
+\pagenumbering{roman} 
+
+% 7. 中文摘要 & 8. 英文摘要
+\input{front/abstract}
+
+% 9. 目錄、圖目錄、表目錄
+\maketableofcontents
+\makelistoffigures
+\makelistoftables
+
+% 10. 正文開始使用阿拉伯數字頁碼
+\mainmatter
+
+% 11. 依序輸入各章節內容
+\input{contents/chapter01}
+\input{contents/chapter02}
+\input{contents/chapter03}
+\input{contents/chapter04}
+\input{contents/chapter05}
+
+% 12. 參考文獻
+\refmatter
+\bibliographystyle{plain}
+\bibliography{back/references}
+
+% 13. 附錄
+% \appendix{A}{附錄A標題}
+% \input{back/appendix01}
+% \appendix{B}{附錄B標題}
+% \input{back/appendix02}
+
+\end{document}

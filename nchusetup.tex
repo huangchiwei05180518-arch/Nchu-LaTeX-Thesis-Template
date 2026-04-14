@@ -1,0 +1,42 @@
+% !TeX root = ./main.tex
+
+% --------------------------------------------------
+% 資訊設定（Information Configs）
+% --------------------------------------------------
+% 這裡的資訊會被模板自動帶入到封面、書名頁、摘要等地方
+\nchusetup{
+  % 學校
+  university      = {國立中興大學},
+  %系所
+  institute       = {碩士學位學程名稱}, 
+  % 中文論文題目
+  title           = {您的碩士論文題目}, 
+  % 英文論文題目
+  title*          = {Title of Your Master Thesis},
+  % 中文姓名
+  author          = {您的名字},
+  % 英文姓名
+  author*         = {Your Name},
+  % 指導教授中文姓名
+  advisor         = {指導教授名字},
+  % 指導教授英文姓名
+  advisor*        = {Advisor Name},
+  % 論文完成「年月」，格式為 YYYY-MM，模板會自動轉換成民國格式
+  date            = {2026-08},
+  % 摘要的中文關鍵字
+  keywords        = {關鍵字一, 關鍵字二, 關鍵字三},
+  % 摘要的英文關鍵字
+  keywords*       = {Keyword 1, Keyword 2, Keyword 3},
+}
+
+% --------------------------------------------------
+% 加載額外套件（Additional Packages）
+% --------------------------------------------------
+\usepackage[sort&compress]{natbib}      % 參考文獻
+\usepackage{amsmath, amsthm, amssymb}   % 數學環境
+\usepackage{booktabs}                   % 改善表格設置
+\usepackage{multirow}                   % 合併儲存格
+\usepackage{diagbox}                    % 插入表格反斜線
+\usepackage{array}                      % 調整表格高度
+\usepackage{longtable}                  % 支援跨頁長表格
+\usepackage{paralist}                   % 列表環境
