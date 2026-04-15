@@ -1,0 +1,22 @@
+# LaTeX build artifacts
+*.aux
+*.bbl
+*.blg
+*.fdb_latexmk
+*.fls
+*.lof
+*.log
+*.lot
+*.out
+*.synctex.gz
+*.toc
+*.xdv
+
+# Local build helpers
+build.log
+build2.log
+main.pdf
+
+# OS clutter
+Thumbs.db
+.DS_Store
