@@ -6,11 +6,42 @@
 
 說明實驗設計...
 
+\begin{table}[htbp]
+  \centering
+  \caption{實驗設定範例}
+  \label{tab:experiment-setting}
+  \begin{tabular}{lll}
+    \toprule
+    項目 & 設定 & 說明 \\
+    \midrule
+    資料集 & Dataset A & 可替換為實際資料來源 \\
+    評估指標 & Accuracy & 可依研究領域調整 \\
+    重複次數 & 5 & 用於估計平均表現 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
 \section{實驗結果}
 
 \subsection{結果一}
 
 分析結果...
+
+\begin{figure}[htbp]
+  \centering
+  \begin{tikzpicture}
+    \draw[rounded corners, thick] (0,0) rectangle (3,1);
+    \draw[rounded corners, thick] (4,0) rectangle (7,1);
+    \draw[rounded corners, thick] (8,0) rectangle (11,1);
+    \node at (1.5,0.5) {資料};
+    \node at (5.5,0.5) {方法};
+    \node at (9.5,0.5) {結果};
+    \draw[->, thick] (3,0.5) -- (4,0.5);
+    \draw[->, thick] (7,0.5) -- (8,0.5);
+  \end{tikzpicture}
+  \caption{研究流程示意圖}
+  \label{fig:workflow}
+\end{figure}
 
 \section{討論}
 

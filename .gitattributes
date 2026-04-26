@@ -1,0 +1,11 @@
+* text=auto eol=lf
+
+*.tex text eol=lf diff=tex
+*.cls text eol=lf diff=tex
+*.bib text eol=lf
+*.md text eol=lf diff=markdown
+
+*.pdf binary
+*.png binary
+*.jpg binary
+*.jpeg binary

@@ -1,38 +1,68 @@
-# 模板格式規範說明
+# 模板格式規範對照
 
-本文件只保留「格式要求」與「模板中對應的調整位置」，不再重複快速開始與安裝步驟。若你是第一次使用模板，請先看 [README.md](README.md)。
+本文件整理模板目前採用的格式、對應程式位置，以及與國立中興大學「F2-65 學位論文格式規範（111.4.21 修訂）」相關的提醒。若學校或系所有更新公告，請以最新官方文件為準。
 
-## 核心規範總覽
+官方參考來源：
 
-| 項目 | 規範 |
-|------|------|
-| 紙張大小 | A4 |
-| 頁邊距 | 上下左右各 3 cm |
-| 行距 | 1.6 倍 |
-| 內文字級 | 12pt |
-| 編譯器 | XeLaTeX |
-| 裝訂與版面 | 雙面列印、章節可從奇數頁開始 |
+- 教務處註冊組表格下載：https://oaa.nchu.edu.tw/zh-tw/rs-form/download-list.82.20
+- 學位論文格式規範 PDF：https://www.me.nchu.edu.tw/uploads/others/20241010025915_F2-65%E5%AD%B8%E4%BD%8D%E8%AB%96%E6%96%87%E6%A0%BC%E5%BC%8F%E8%A6%8F%E7%AF%84-%E4%B8%AD%E6%96%87%E7%89%88.pdf
 
-## 頁碼與文件順序
+## 核心規範
 
-模板目前在 `main.tex` 的安排如下：
+| 項目 | 模板設定 | 主要位置 |
+|------|----------|----------|
+| 紙張大小 | A4 | `nchuthesis.cls` 的 `\LoadClass[a4paper, 12pt]{report}` |
+| 頁邊距 | 上下左右各 3 cm | `nchuthesis.cls` 的 `\geometry{...}` |
+| 內文字級 | 12pt | `nchuthesis.cls`、`main.tex` |
+| 行距 | 1.6 倍 | `nchuthesis.cls` 的 `\setstretch{1.6}` |
+| 編譯器 | XeLaTeX | `nchuthesis.cls` 會檢查 XeLaTeX |
+| 頁碼 | 前置頁羅馬數字、正文起阿拉伯數字 | `main.tex` |
+| 參考文獻 | BibTeX + `plain` | `main.tex`、`back/references.bib` |
+
+## 文件順序
+
+模板在 `main.tex` 目前安排如下：
 
 1. 封面
 2. 空白頁
 3. 書名頁
-4. 審核頁與授權頁（預留，可自行啟用）
+4. 審核頁與授權頁入口
 5. 致謝
-6. 摘要、目錄、圖目錄、表目錄
-7. 正文章節
-8. 參考文獻
-9. 附錄
+6. 中文摘要
+7. 英文摘要
+8. 目錄
+9. 表目次
+10. 圖目次
+11. 正文章節
+12. 參考文獻
+13. 附錄
 
-頁碼規則：
+官方規範將英文書名頁列為非必備頁面，並要求審核頁與授權頁依學校或系所提供格式處理。本模板預留 PDF 插入位置，但不附任何個人化掃描檔。
 
-- 封面與書名頁不顯示頁碼
-- 摘要、目錄、圖表目錄使用羅馬數字
-- 正文從 `\mainmatter` 後切換為阿拉伯數字
-- 附錄延續正文頁碼，章節編號改為附錄 A、B
+## 封面與書名頁
+
+封面資訊來自 `nchusetup.tex`：
+
+- `university`
+- `institute`
+- `title` / `title*`
+- `author` / `author*`
+- `advisor` / `advisor*`
+- `date`
+
+官方格式重點：
+
+- 封面上下左右邊界各 3 cm。
+- 系所、論文類別、題目、指導教授、研究生、日期置中。
+- 題目過長時應控制行數，中文題目建議不超過三行。
+- 完成日期使用民國年月。
+
+## 摘要、目錄與頁碼
+
+- 中文摘要與英文摘要分別使用 `front/abstract.tex` 的 `abstract` 與 `abstract*` 環境。
+- 摘要到圖表目次使用小寫羅馬數字頁碼。
+- 正文從 `\mainmatter` 後重新以阿拉伯數字 `1` 起算。
+- 參考文獻與附錄延續正文頁碼。
 
 對應實作：
 
@@ -42,162 +72,92 @@
 \mainmatter
 ```
 
-## 封面與摘要
+## 章節層級
 
-### 封面資訊來源
+建議使用：
 
-封面與書名頁內容來自 `nchusetup.tex`：
+- `\chapter`
+- `\section`
+- `\subsection`
 
-- `university`
-- `institute`
-- `title` / `title*`
-- `author` / `author*`
-- `advisor` / `advisor*`
-- `date`
+模板預設支援到三級標題的編號與目錄呈現。若需要更深層級，請調整 `nchuthesis.cls` 裡的 `tocdepth` 與 `secnumdepth`。
 
-### 摘要建議
+## 表、圖與公式
 
-- 中文摘要：建議 150 到 300 字
-- 英文摘要：建議 150 到 300 words
-- 摘要後方附上中英文關鍵字
+官方規範要求表題置於表上方，圖題置於圖下方，且在文中明確引用表圖編號。模板已透過 `caption` 設定表題與圖題位置。
 
-## 章節、目錄、附錄
-
-### 章節層級
-
-- 建議使用 `\chapter`、`\section`、`\subsection`
-- 模板預設支援到三級標題的編號與目錄呈現
-
-### 附錄格式
-
-附錄標題格式由 `nchuthesis.cls` 控制，使用方式如下：
+表格範例：
 
 ```latex
-\appendix{A}{附錄A標題}
-\input{back/appendix01}
+\begin{table}[htbp]
+  \centering
+  \caption{表格說明}
+  \label{tab:example}
+  \begin{tabular}{lll}
+    \toprule
+    欄位一 & 欄位二 & 欄位三 \\
+    \midrule
+    A & B & C \\
+    \bottomrule
+  \end{tabular}
+\end{table}
 ```
 
-顯示形式會接近：
-
-```text
-附錄 A --- 附錄A標題
-```
-
-附錄檔本身只放內容即可，不需要再次寫 `\appendix{...}`。
-
-## 圖、表、公式與引用
-
-### 圖片
-
-- 圖說放在圖片下方
-- 以 `\label` + `\ref` 交叉引用
-- 檔案建議放在 `figures/chapterXX/`
-
-範例：
+圖片範例：
 
 ```latex
 \begin{figure}[htbp]
-    \centering
-    \includegraphics[width=0.7\textwidth]{figures/chapter01/example.png}
-    \caption{圖片說明}
-    \label{fig:example}
+  \centering
+  \includegraphics[width=0.7\textwidth]{figures/chapter01/example.png}
+  \caption{圖片說明}
+  \label{fig:example}
 \end{figure}
 ```
 
-### 表格
-
-- 表題通常放在表格上方
-- 可使用 `booktabs`、`multirow`、`longtable` 等套件
-
-### 公式
-
-建議使用 `equation` 環境並搭配 `\label`：
+公式範例：
 
 ```latex
 \begin{equation}
-    E = mc^2
-    \label{eq:einstein}
+  E = mc^2
+  \label{eq:einstein}
 \end{equation}
 ```
 
-### 參考文獻
+## 參考文獻
 
-- 使用 BibTeX 管理
-- 正文用 `\cite{key}`
-- `main.tex` 目前使用：
+目前使用 BibTeX：
 
 ```latex
 \bibliographystyle{plain}
 \bibliography{back/references}
 ```
 
-## 模板中的對應位置
+若系所有特定引用格式，請修改 `\bibliographystyle{...}`，或改用系所要求的 BibTeX / BibLaTeX 設定。官方規範允許依學門慣用格式安排參考書目。
+
+## 附錄
+
+在 `main.tex` 取消註解即可啟用：
+
+```latex
+% \appendix{A}{附錄A標題}
+% \input{back/appendix01}
+```
+
+附錄檔本身只放內容，不需要再次呼叫 `\appendix{...}`。
+
+## 常見微調位置
 
 | 想調整的內容 | 主要位置 |
 |--------------|----------|
 | 封面、作者、題目、日期 | `nchusetup.tex` |
-| 語言、字體組、浮水印、DOI | `main.tex` 的 `\documentclass` |
-| 頁碼切換、章節輸入順序、是否啟用附錄 | `main.tex` |
+| 論文類型、語言、字體組 | `main.tex` 的 `\documentclass` |
+| 文件順序、章節輸入、附錄啟用 | `main.tex` |
 | 邊界、字體、章節樣式、目錄樣式 | `nchuthesis.cls` |
-| 文獻風格 | `main.tex` 的 `\bibliographystyle{...}` |
+| 參考文獻樣式 | `main.tex` |
+| 使用者自訂套件 | `nchusetup.tex` 下半部 |
 
-## 常見微調
+## 送出前提醒
 
-### 修改語言或字體組
-
-在 `main.tex`：
-
-```latex
-\documentclass[
-  language  = chinese,
-  fontset   = system,
-  watermark = false,
-  doi       = false,
-]{nchuthesis}
-```
-
-可用選項：
-
-- `language = chinese` 或 `english`
-- `fontset = system`、`overleaf`、`template`、`default`
-
-其中：
-
-- `system` 是目前最貼近模板預設的本機字體設定
-- `overleaf` 適合雲端環境
-- `template` 目前等同 `system`
-
-### 修改行距
-
-在 `nchuthesis.cls` 找 `\setstretch{...}`。
-
-### 修改頁邊距
-
-在 `nchuthesis.cls` 找 `\geometry{...}`。
-
-### 修改中英文字體
-
-在 `nchuthesis.cls` 找 `\setCJKmainfont{...}` 與 `\setmainfont{...}`。
-
-### 關閉或開啟浮水印
-
-在 `main.tex` 的 `\documentclass` 設定：
-
-```latex
-watermark = false
-```
-
-### 更換參考文獻風格
-
-在 `main.tex`：
-
-```latex
-\bibliographystyle{plain}
-```
-
-可依需求改為 `apalike`、`unsrt` 等樣式。
-
-## 使用提醒
-
-- 若學校或系所有更新版規範，請以官方公告或原始 PDF 為準。
-- 如果你只是要開始寫論文，請先看 [README.md](README.md)；本文件主要給需要校對格式或微調模板的人。
+- 各系所可能有比校級規範更細的要求。
+- 審核頁與授權頁通常需使用學校或系所提供的最新表件。
+- 若要公開到 GitHub，請勿提交含簽名、學號、身分證字號或未公開論文內容的 PDF。

@@ -1,0 +1,30 @@
+name: Build LaTeX PDF
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Compile thesis template
+        uses: xu-cheng/latex-action@v4
+        with:
+          root_file: main.tex
+          latexmk_use_xelatex: true
+          os: debian
+          extra_system_packages: fonts-noto-cjk
+
+      - name: Upload PDF artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: thesis-template-pdf
+          path: main.pdf

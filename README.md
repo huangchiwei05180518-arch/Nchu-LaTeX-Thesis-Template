@@ -1,24 +1,39 @@
-# LaTeX 碩士論文模板（NCHU 格式）
+# NCHU Thesis LaTeX Template
 
-本模板以國立中興大學碩士論文格式為基礎，使用 XeLaTeX 編譯，已整理好封面、書名頁、摘要、目錄、章節、參考文獻與附錄的基本架構。
+國立中興大學學位論文 XeLaTeX 模板。這個專案整理了封面、書名頁、摘要、目錄、圖表目次、章節、參考文獻與附錄的基本結構，目標是讓研究生可以直接從一個可編譯的範例開始寫作。
 
-#下載安裝vscode
-下載連結 https://code.visualstudio.com/
-開啟vscode
-點選左側欄explorer，open folder，開啟下載軟體包之資料夾
-使用右側欄chat，登入github，輸入建立專案、編譯PDF，即可產出論文
-點選左側欄extension，尋找pdf掛件並下載安裝，即可在vscode開啟pdf
+本模板參照國立中興大學教務處註冊組的「F2-65 學位論文格式規範（111.4.21 修訂）」整理，但不是學校官方模板。送印與上傳前，請仍以教務處與系所最新公告為準：
 
-## 文件入口
+- 教務處註冊組表格下載：https://oaa.nchu.edu.tw/zh-tw/rs-form/download-list.82.20
+- 學位論文格式規範 PDF：https://www.me.nchu.edu.tw/uploads/others/20241010025915_F2-65%E5%AD%B8%E4%BD%8D%E8%AB%96%E6%96%87%E6%A0%BC%E5%BC%8F%E8%A6%8F%E7%AF%84-%E4%B8%AD%E6%96%87%E7%89%88.pdf
 
-- `README.md`：使用方式、快速開始、常見操作與疑難排解
-- `FORMAT_SPEC.md`：版面與格式規範、模板對應位置、常見微調
+## 功能特色
+
+- 使用 XeLaTeX，支援中文與英文內容。
+- 以 `nchusetup.tex` 集中管理論文題目、作者、指導教授、日期與關鍵字。
+- 內建封面、書名頁、致謝、中文摘要、英文摘要、目錄、表目次、圖目次、參考文獻與附錄入口。
+- 支援 Windows、Overleaf 與常見 TeX Live 環境的字體 fallback。
+- 內建 GitHub Actions workflow，可在推送與 pull request 時自動編譯範例 PDF。
 
 ## 快速開始
 
-### 1. 修改論文基本資訊
+### 1. 安裝編譯環境
 
-先編輯 `nchusetup.tex`，至少填入系所、題目、作者、指導教授與日期：
+請先安裝一套 LaTeX 發行版：
+
+- Windows：建議 MiKTeX 或 TeX Live。
+- macOS：建議 MacTeX。
+- Linux：建議 TeX Live，並安裝 CJK 字體套件，例如 Noto CJK。
+- Overleaf：上傳整個專案後，將 compiler 設為 XeLaTeX。
+
+若使用 VS Code，建議安裝：
+
+- LaTeX Workshop
+- PDF Viewer 或內建 PDF 預覽相關擴充套件
+
+### 2. 修改論文基本資訊
+
+編輯 `nchusetup.tex`，至少填入系所、題目、作者、指導教授、日期與關鍵字：
 
 ```latex
 \nchusetup{
@@ -36,63 +51,60 @@
 }
 ```
 
-### 2. 填寫內容檔案
+`date` 可填 `YYYY-MM` 或 `YYYY-MM-DD`。封面會轉成民國年月顯示。
+
+### 3. 填寫內容
 
 - `front/acknowledgement.tex`：致謝
-- `front/abstract.tex`：中英文摘要
+- `front/abstract.tex`：中文摘要與英文摘要
 - `contents/chapter01.tex` 到 `contents/chapter05.tex`：各章正文
 - `back/references.bib`：BibTeX 參考文獻
+- `back/appendix01.tex`、`back/appendix02.tex`：附錄範例
 
-### 3. 編譯 PDF
+### 4. 編譯 PDF
 
-最穩定的方式是直接用 XeLaTeX + BibTeX；如果你的環境已經能正常使用 `latexmk`，再改用它即可。
-
-手動編譯順序如下：
+最推薦使用 `latexmk`：
 
 ```bash
-xelatex main.tex
-xelatex main.tex
-xelatex main.tex
+latexmk -xelatex -interaction=nonstopmode -halt-on-error main.tex
 ```
 
-加入 `\cite{...}` 之後，再補跑一次：
+若 `latexmk` 無法使用，請改用手動流程：
 
 ```bash
+xelatex main.tex
 bibtex main
 xelatex main.tex
 xelatex main.tex
 ```
 
-若你的環境支援 `latexmk`，也可以使用：
+在 Windows + MiKTeX 上，`latexmk` 需要 Perl；若尚未安裝 Perl，使用上面的手動流程即可。
+
+### 5. 清理編譯暫存檔
 
 ```bash
-latexmk -xelatex main.tex
+latexmk -C
 ```
 
-### 4. 檢查輸出
-
-至少確認以下幾點：
-
-- 封面與書名頁資訊是否正確
-- 致謝、摘要、目錄頁碼是否正常
-- 正文是否從阿拉伯數字 `1` 開始
-- 圖表、引用、參考文獻是否都有出現
+或刪除 `.aux`、`.bbl`、`.log`、`.toc`、`.lof`、`.lot`、`.out` 等產物。這些檔案已列入 `.gitignore`。
 
 ## 專案結構
 
 | 路徑 | 用途 |
 |------|------|
-| `main.tex` | 主文件，依序串接封面、摘要、目錄、正文與參考文獻 |
-| `nchusetup.tex` | 論文基本資訊與額外套件設定 |
-| `nchuthesis.cls` | 模板格式定義，控制字體、頁面、章節樣式等 |
+| `main.tex` | 主文件，依序串接封面、摘要、目錄、正文、參考文獻與附錄 |
+| `nchusetup.tex` | 論文基本資訊與使用者額外套件設定 |
+| `nchuthesis.cls` | 模板格式定義，控制字體、頁面、章節樣式、目錄樣式等 |
 | `front/` | 前置資料，如致謝與摘要 |
 | `contents/` | 正文章節內容 |
 | `back/` | 參考文獻與附錄 |
-| `figures/` | 各章圖片資源 |
+| `figures/` | 圖片資源 |
+| `FORMAT_SPEC.md` | 格式規範對照與微調位置 |
+| `CONTRIBUTING.md` | 貢獻方式與維護建議 |
 
-## 常用操作
+## 常用調整
 
-### 切換語言或版面選項
+### 切換論文類型與語言
 
 在 `main.tex` 的 `\documentclass` 調整：
 
@@ -100,52 +112,48 @@ latexmk -xelatex main.tex
 \documentclass[
   twoside,
   openright,
-  degree    = master,
-  language  = chinese,
-  fontset   = system,
-  watermark = false,
-  doi       = false,
+  degree   = master,
+  language = chinese,
+  fontset  = system,
 ]{nchuthesis}
 ```
 
-常用選項如下：
+可用選項：
 
 - `degree = master` 或 `doctor`
 - `language = chinese` 或 `english`
 - `fontset = system`、`overleaf`、`template`、`default`
-- `watermark = true` 或 `false`
-- `doi = true` 或 `false`
 
-補充：
-
-- `system`：使用本機已安裝的字體，最符合目前模板預設
-- `overleaf`：改用較適合 Overleaf 的字體組合
-- `template`：目前等同 `system`，保留為相容別名
-
-### 新增或啟用附錄
-
-`main.tex` 末尾已預留範例，取消註解即可：
-
-```latex
-% \appendix{A}{附錄A標題}
-% \input{back/appendix01}
-% \appendix{B}{附錄B標題}
-% \input{back/appendix02}
-```
-
-`back/appendix01.tex` 與 `back/appendix02.tex` 只需要放附錄內容，不要再重寫 `\appendix{...}`。
+`system` 適合本機編譯，會優先使用 Windows 常見字體並 fallback 到 Noto CJK；`overleaf` 適合 Overleaf 或 Linux/TeX Live 環境。
 
 ### 插入圖片
 
-將圖片放到對應章節資料夾後，在章節檔中加入：
+將圖片放到 `figures/` 或其子資料夾後，在章節檔加入：
 
 ```latex
 \begin{figure}[htbp]
-    \centering
-    \includegraphics[width=0.7\textwidth]{figures/chapter01/example.png}
-    \caption{圖片說明}
-    \label{fig:example}
+  \centering
+  \includegraphics[width=0.7\textwidth]{figures/chapter01/example.png}
+  \caption{圖片說明}
+  \label{fig:example}
 \end{figure}
+```
+
+### 插入表格
+
+```latex
+\begin{table}[htbp]
+  \centering
+  \caption{表格說明}
+  \label{tab:example}
+  \begin{tabular}{lll}
+    \toprule
+    欄位一 & 欄位二 & 欄位三 \\
+    \midrule
+    A & B & C \\
+    \bottomrule
+  \end{tabular}
+\end{table}
 ```
 
 ### 新增參考文獻
@@ -165,51 +173,53 @@ latexmk -xelatex main.tex
 
 ### 中文顯示異常或亂碼
 
-- 請確認使用的是 XeLaTeX，不是 pdfLaTeX
-- 請確認檔案編碼為 UTF-8
-- 若是非 Windows 環境，請優先嘗試 `fontset = overleaf` 或自行修改 `nchuthesis.cls`
+- 確認使用 XeLaTeX，不是 pdfLaTeX。
+- 確認檔案編碼為 UTF-8。
+- Linux 或 Overleaf 若找不到中文字體，先改用 `fontset = overleaf`。
 
 ### 找不到字體
 
-- Windows 環境可先嘗試 `fontset = system`
-- Overleaf 或其他環境可先嘗試 `fontset = overleaf`
-- 目前模板沒有內附字體檔；若系統沒有對應字體，需自行修改 `nchuthesis.cls`
+模板會依序尋找常見中文字體。若仍失敗，請安裝 Noto CJK 字體，或在 `nchuthesis.cls` 的字體設定區加入你的系統字體名稱。
 
-### 圖片沒有出現
+### 參考文獻沒有出現
 
-- 檢查路徑是否正確，例如 `figures/chapter01/example.png`
-- 檢查副檔名大小寫是否一致
-- 優先使用 `.png`、`.jpg` 或 `.pdf`
+請確認正文中有使用 `\cite{...}`，並依序執行：
+
+```bash
+xelatex main.tex
+bibtex main
+xelatex main.tex
+xelatex main.tex
+```
 
 ### 頁碼不正確
 
-- 前置資料應使用羅馬數字，正文從 `\mainmatter` 後切為阿拉伯數字
-- 若自行調整 `main.tex` 順序，請特別檢查 `\pagenumbering{roman}` 與 `\mainmatter` 的位置
+請避免移除 `main.tex` 裡的 `\pagenumbering{roman}` 與 `\mainmatter`。摘要到目錄使用羅馬數字，正文開始後使用阿拉伯數字。
 
-### 編譯時缺少套件
+### 審核頁或授權頁要怎麼放
 
-- 建議安裝完整的 TeX Live 或 MiKTeX
-- 若用 VS Code，請搭配 LaTeX Workshop
-- 若在 Windows + MiKTeX 使用 `latexmk`，可能還需要另外安裝 Perl
+掃描或下載後放在專案根目錄，並在 `main.tex` 啟用：
 
-## 建議工作流程
+```latex
+% \includepdf{a4_approval.pdf}
+% \includepdf{a4_authorization.pdf}
+```
 
-1. 先完成 `nchusetup.tex` 基本資訊。
-2. 確認 `main.tex` 可以成功編譯成 PDF。
-3. 再逐步填寫摘要、各章內容與參考文獻。
-4. 每次大改後重新編譯，避免最後一次處理太多錯誤。
-5. 送出前用 [FORMAT_SPEC.md](FORMAT_SPEC.md) 對照格式細節。
+這些通常含有個人資料，不建議提交到公開 GitHub repository。
 
-## 補充說明
+## 發佈前檢查清單
 
-- 模板目前以 NCHU 碩士論文需求為主；若系所另有細部規定，請以系所公告為準。
-- 若你要調整行距、字體、邊界、章節樣式，請直接看 [FORMAT_SPEC.md](FORMAT_SPEC.md)。
+- `nchusetup.tex` 的作者、題目、系所、日期與關鍵字皆已更新。
+- `main.tex` 能成功編譯。
+- 目錄、表目次、圖目次與參考文獻頁碼正常。
+- 審核頁、授權頁等個人資料未被 commit 到公開 repository。
+- 已依系所最新公告確認格式要求。
 
 ## 維護資訊
 
 - 模板整理與維護：黃哲韋，劉宇諾
-- 最近整理日期：2026-04-15
+- 最近整理日期：2026-04-26
 
 ## 授權
 
-除學校格式規範、審核頁／授權頁掃描檔等不屬於本模板原創內容的資料外，本模板的程式與範例內容採用 [MIT License](LICENSE)。
+除學校格式規範、審核頁、授權頁掃描檔等不屬於本模板原創內容的資料外，本模板的程式與範例內容採用 [MIT License](LICENSE)。

@@ -6,7 +6,7 @@
 \NeedsTeXFormat{LaTeX2e}
 
 % 定義類別名稱與敘述
-\ProvidesClass{nchuthesis}[2020/05/01 v2.0 nchu Thesis Template]
+\ProvidesClass{nchuthesis}[2026/04/26 v2.1 NCHU thesis template]
 
 % --------------------------------------------------
 % 02 基礎設定（Basic Settings）
@@ -117,9 +117,9 @@
 % 初始化默認值
 \gdef\nchu@degreeset{master}
 \gdef\nchu@language{chinese}
-\gdef\nchu@fontset{default}
-\gdef\nchu@watermark{true}
-\gdef\nchu@doi{true}
+\gdef\nchu@fontset{system}
+\gdef\nchu@watermark{false}
+\gdef\nchu@doi{false}
 \gdef\nchu@university{國立中興大學}
 \gdef\nchu@university@en{National Chung Hsing University}
 \gdef\nchu@institute{系所全名}
@@ -162,12 +162,13 @@
 % 命令: 日期格式
 \newcommand{\nchu@format@date}[2]{%
   \edef\nchu@@date{#2}%
-  \def\nchu@@process@date##1-##2\@nil{%
-    #1{##1}{##2}%
-  }%
-  \expandafter\nchu@@process@date\nchu@@date\@nil
+  \def\nchu@@date@formatter{#1}%
+  \expandafter\nchu@@process@date\nchu@@date--\@nil
 }
-\newcommand\nchu@date@zh@short[3]{\zhdigits{#1}年\zhnumber{#2}月}
+\def\nchu@@process@date#1-#2-#3-#4\@nil{%
+  \nchu@@date@formatter{#1}{#2}{#3}%
+}
+\newcommand\nchu@date@zh@short[3]{\the\numexpr#1-1911\relax~年~\number#2~月}
 \newcommand\nchu@date@zh@digit[3]{\the\numexpr#1-1911\relax~年~\number#2~月}
 \newcommand\nchu@date@zh@digit@short[3]{\the\numexpr#1-1911\relax~年~\number#2~月}
 \newcommand\nchu@date@en@short[3]{\monthname[#2], #1}
@@ -211,7 +212,7 @@
 }
 
 \ifthenelse{\equal{\nchu@degreeset}{doctor}}{
-  \newcommand{\nchu@degree}{博士}
+  \newcommand{\nchu@degree}{博士學位}
   \newcommand{\nchu@degree@en}{Doctoral}
   \newcommand{\nchu@type}{論文}
   \newcommand{\nchu@type@en}{Dissertation}
@@ -300,30 +301,103 @@
 \setlength{\parindent}{2em}
 
 % [字體設定]
-% 使用系統已安裝的字體（本地字體文件夾為空）
-\ifthenelse{\equal{\nchu@fontset}{default}}{
-  \setmainfont{Times New Roman}
-  \setCJKmainfont{SimSun}[AutoFakeBold = 2]%
+% 依序尋找常見字體，降低跨系統編譯時的失敗率。
+\newcommand{\nchu@set@latinfont}{%
+  \IfFontExistsTF{Times New Roman}{%
+    \setmainfont{Times New Roman}%
+  }{%
+    \IfFontExistsTF{TeX Gyre Termes}{%
+      \setmainfont{TeX Gyre Termes}%
+      \nchu@warning{Times New Roman not found; using TeX Gyre Termes.}%
+    }{%
+      \nchu@warning{Times New Roman and TeX Gyre Termes not found; using default Latin font.}%
+    }%
+  }%
 }
 
-\ifthenelse{\equal{\nchu@fontset}{template}}{
-  \setmainfont{Times New Roman}
-  \setCJKmainfont{SimSun}[AutoFakeBold = 3]%
+\newcommand{\nchu@set@sansfont}{%
+  \IfFontExistsTF{Arial}{%
+    \setsansfont{Arial}%
+  }{%
+    \IfFontExistsTF{Droid Sans}{%
+      \setsansfont{Droid Sans}%
+    }{}%
+  }%
 }
 
-\ifthenelse{\equal{\nchu@fontset}{overleaf}}{
-  \setmainfont{Times New Roman}
-  \setsansfont{Droid Sans}
-  \setCJKmainfont{Noto Serif CJK SC}[AutoFakeBold = 2]%
+\newcommand{\nchu@set@monofont}{%
+  \IfFontExistsTF{Courier New}{%
+    \setmonofont{Courier New}%
+  }{%
+    \IfFontExistsTF{Latin Modern Mono}{%
+      \setmonofont{Latin Modern Mono}%
+    }{}%
+  }%
 }
 
-\ifthenelse{\equal{\nchu@fontset}{system}}{
-  \setmainfont{Times New Roman}
-  \setCJKmainfont{SimSun}[AutoFakeBold = 2]%
+\newcommand{\nchu@set@cjkfont}[2]{%
+  \setCJKmainfont{#1}[AutoFakeBold = #2]%
+  \gdef\nchu@cjkfontname{#1}%
 }
 
-% 設定等寬字體
-\setmonofont{Courier New}
+\gdef\nchu@cjkfontname{}
+
+\newcommand{\nchu@set@cjk@noto}{%
+  \IfFontExistsTF{Noto Serif CJK TC}{%
+    \nchu@set@cjkfont{Noto Serif CJK TC}{2}%
+  }{%
+    \IfFontExistsTF{Noto Serif CJK SC}{%
+      \nchu@set@cjkfont{Noto Serif CJK SC}{2}%
+    }{%
+      \IfFontExistsTF{FandolSong-Regular}{%
+        \nchu@set@cjkfont{FandolSong-Regular}{2}%
+      }{%
+        \IfFontExistsTF{FandolKai-Regular}{%
+          \nchu@set@cjkfont{FandolKai-Regular}{2}%
+        }{%
+          \nchu@error{No supported CJK font found. Install Noto CJK fonts or choose another fontset.}%
+        }%
+      }%
+    }%
+  }%
+}
+
+\newcommand{\nchu@set@cjk@system}{%
+  \IfFontExistsTF{DFKai-SB}{%
+    \nchu@set@cjkfont{DFKai-SB}{2}%
+  }{%
+    \IfFontExistsTF{BiauKai}{%
+      \nchu@set@cjkfont{BiauKai}{2}%
+    }{%
+      \IfFontExistsTF{KaiTi}{%
+        \nchu@set@cjkfont{KaiTi}{2}%
+      }{%
+        \IfFontExistsTF{SimSun}{%
+          \nchu@set@cjkfont{SimSun}{2}%
+        }{%
+          \nchu@set@cjk@noto
+        }%
+      }%
+    }%
+  }%
+}
+
+\nchu@set@latinfont
+\nchu@set@sansfont
+\nchu@set@monofont
+
+\ifthenelse{\equal{\nchu@fontset}{overleaf}}{%
+  \nchu@set@cjk@noto
+}{%
+  \nchu@set@cjk@system
+}
+
+\newcommand{\nchu@set@cjkmonofont}{%
+  \ifx\nchu@cjkfontname\@empty\else
+    \setCJKmonofont{\nchu@cjkfontname}[AutoFakeBold = 2]%
+  \fi
+}
+\nchu@set@cjkmonofont
 
 % [版面大小]
 \RequirePackage{geometry}
@@ -336,10 +410,22 @@
 
 % [連結設定]
 \hypersetup{
-  colorlinks,
+  unicode=true,
+  colorlinks=true,
   linkcolor=black,
-  anchorcolor=blue,
-  citecolor=green
+  anchorcolor=black,
+  citecolor=black,
+  urlcolor=black,
+  pdfstartview=FitH
+}
+
+\AtBeginDocument{%
+  \hypersetup{%
+    pdftitle={\nchu@title},
+    pdfauthor={\nchu@author},
+    pdfsubject={\nchu@university\space \nchu@degree\nchu@type},
+    pdfkeywords={\nchu@keywords}%
+  }%
 }
 
 % [目錄格式]
@@ -427,7 +513,7 @@
       \vfill
       
       \nchu@title\par
-      {\fontspec{Times New Roman}\nchu@title@en}\par
+      {\rmfamily\nchu@title@en}\par
       
       \vfill
       
