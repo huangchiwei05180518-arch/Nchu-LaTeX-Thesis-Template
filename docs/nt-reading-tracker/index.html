@@ -1,0 +1,1051 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>恢復本新約五遍進度追蹤</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --muted: #64748b;
+      --line: #e2e8f0;
+      --text: #0f172a;
+      --accent: #0f172a;
+      --blue: #2563eb;
+      --green: #16a34a;
+      --red: #dc2626;
+      --amber: #d97706;
+      --shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+      --radius: 18px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+    .container {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .topbar {
+      display: flex;
+      gap: 16px;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 18px;
+      flex-wrap: wrap;
+    }
+    h1 {
+      margin: 0;
+      font-size: 30px;
+      line-height: 1.15;
+    }
+    .subtitle {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.6;
+      max-width: 760px;
+    }
+    .top-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .cloud-pill {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 10px 14px;
+      font-size: 13px;
+      box-shadow: var(--shadow);
+    }
+    .grid {
+      display: grid;
+      gap: 16px;
+    }
+    .grid-4 {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+    .grid-3 {
+      grid-template-columns: 1.2fr 1fr 1fr;
+    }
+    .grid-5 {
+      grid-template-columns: 1.4fr 1fr;
+      align-items: start;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .card-header {
+      padding: 18px 18px 0 18px;
+      font-weight: 700;
+      font-size: 18px;
+    }
+    .card-body {
+      padding: 18px;
+    }
+    .muted { color: var(--muted); }
+    .small { font-size: 13px; }
+    .tiny { font-size: 12px; }
+    .metric-title { color: var(--muted); font-size: 13px; }
+    .metric-value { margin-top: 6px; font-size: 28px; font-weight: 800; }
+    .metric-sub { margin-top: 4px; font-size: 13px; color: var(--muted); }
+    .good { color: var(--green); }
+    .bad { color: var(--red); }
+    .warn { color: var(--amber); }
+    .progress-wrap {
+      height: 12px;
+      width: 100%;
+      background: #e2e8f0;
+      border-radius: 999px;
+      overflow: hidden;
+      margin-top: 10px;
+    }
+    .progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, #0f172a, #334155);
+      width: 0%;
+    }
+    button, .btn {
+      border: 1px solid var(--line);
+      background: white;
+      color: var(--text);
+      border-radius: 12px;
+      padding: 10px 14px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    button.primary {
+      background: var(--accent);
+      color: white;
+      border-color: var(--accent);
+    }
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    .calendar-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    .calendar-grid, .weekdays {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: 8px;
+    }
+    .weekdays div {
+      text-align: center;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .day {
+      min-height: 96px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: white;
+      text-align: left;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      gap: 8px;
+    }
+    .day.selected {
+      background: #0f172a;
+      color: white;
+      border-color: #0f172a;
+    }
+    .day.other {
+      background: #f1f5f9;
+      color: #94a3b8;
+    }
+    .day .date {
+      font-size: 14px;
+      font-weight: 800;
+    }
+    .day .note {
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+    .day.selected .note {
+      color: #cbd5e1;
+    }
+    .inline-note {
+      background: #f8fafc;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 14px;
+      font-size: 14px;
+    }
+    .record-range {
+      display: grid;
+      grid-template-columns: 1fr 120px;
+      gap: 10px;
+      align-items: end;
+    }
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+    input, select, textarea {
+      width: 100%;
+      padding: 11px 12px;
+      border: 1px solid #cbd5e1;
+      border-radius: 12px;
+      font-size: 14px;
+      background: white;
+    }
+    textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+    .entry-list {
+      display: grid;
+      gap: 10px;
+      max-height: 340px;
+      overflow: auto;
+    }
+    .entry-item {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 12px;
+      background: #f8fafc;
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: flex-start;
+    }
+    .pill {
+      display: inline-block;
+      border-radius: 999px;
+      padding: 5px 10px;
+      background: #eef2ff;
+      color: #3730a3;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .danger {
+      color: var(--red);
+    }
+    .footer-note {
+      margin-top: 16px;
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+    .toolbar {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.45);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      z-index: 50;
+    }
+    .modal {
+      width: 100%;
+      max-width: 720px;
+      background: white;
+      border-radius: 22px;
+      box-shadow: 0 20px 60px rgba(15,23,42,0.2);
+      overflow: hidden;
+    }
+    .modal .card-header {
+      padding-bottom: 12px;
+    }
+    .modal .card-body {
+      padding-top: 0;
+    }
+    .field-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .status-line {
+      margin-top: 8px;
+      font-size: 13px;
+    }
+    @media (max-width: 1080px) {
+      .grid-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .grid-3 { grid-template-columns: 1fr; }
+      .grid-5 { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 720px) {
+      .grid-4 { grid-template-columns: 1fr; }
+      .field-grid, .record-range { grid-template-columns: 1fr; }
+      h1 { font-size: 24px; }
+      .container { padding: 14px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="topbar">
+      <div>
+        <h1>恢復本新約五遍進度追蹤</h1>
+        <div class="subtitle">
+          維持原本的日曆與進度介面，並支援雲端同步。<br>
+          目前已依你上傳的備份載入進度，下一個章節會從 <strong>啟示錄 15 章</strong> 開始。
+        </div>
+        <div class="toolbar">
+          <button id="cloudSettingBtn">雲端同步設定</button>
+          <button id="exportBtn">匯出備份</button>
+          <button id="importBtn">匯入備份</button>
+          <input id="importInput" type="file" accept="application/json" style="display:none;" />
+          <button id="clearAfterBtn" class="danger">清空 4/5 後紀錄</button>
+        </div>
+      </div>
+      <div class="top-actions">
+        <div class="cloud-pill" id="cloudStatusPill">雲端未設定</div>
+      </div>
+    </div>
+
+    <div class="grid grid-4">
+      <div class="card"><div class="card-body"><div class="metric-title">累計完成</div><div class="metric-value" id="metricDone">0</div><div class="metric-sub" id="metricRounds">約 0 遍</div></div></div>
+      <div class="card"><div class="card-body"><div class="metric-title">今天應達</div><div class="metric-value" id="metricExpected">0</div><div class="metric-sub">依整體時程計算</div></div></div>
+      <div class="card"><div class="card-body"><div class="metric-title">目前差距</div><div class="metric-value" id="metricDelta">0</div><div class="metric-sub" id="metricDeltaText">剛好達標</div></div></div>
+      <div class="card"><div class="card-body"><div class="metric-title">剩餘每日需求</div><div class="metric-value" id="metricNeed">0</div><div class="metric-sub" id="metricRemain">剩 0 章 / 0 天</div></div></div>
+    </div>
+
+    <div class="card" style="margin-top:16px;">
+      <div class="card-header">總進度</div>
+      <div class="card-body">
+        <div class="small muted" id="progressText">0 / 1300 章</div>
+        <div class="progress-wrap"><div class="progress-bar" id="progressBar"></div></div>
+      </div>
+    </div>
+
+    <div class="grid grid-3" style="margin-top:16px;">
+      <div class="card">
+        <div class="card-header">目標資訊</div>
+        <div class="card-body small muted" id="goalInfo"></div>
+      </div>
+      <div class="card">
+        <div class="card-header">目前讀到</div>
+        <div class="card-body">
+          <div class="metric-value" style="font-size:24px;" id="nextReadingPoint">-</div>
+          <div class="metric-sub">下一個可記錄章節</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">今日達標建議</div>
+        <div class="card-body">
+          <div class="metric-value" style="font-size:24px;" id="todayTarget">-</div>
+          <div class="metric-sub" id="todayTargetSub">-</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid grid-5" style="margin-top:16px;">
+      <div class="card">
+        <div class="card-header">每日日曆</div>
+        <div class="card-body">
+          <div class="calendar-head">
+            <div>
+              <button id="prevMonthBtn">◀</button>
+              <button id="nextMonthBtn">▶</button>
+            </div>
+            <div style="font-weight:800;" id="calendarTitle"></div>
+          </div>
+          <div class="weekdays">
+            <div>日</div><div>一</div><div>二</div><div>三</div><div>四</div><div>五</div><div>六</div>
+          </div>
+          <div class="calendar-grid" id="calendarGrid" style="margin-top:8px;"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header" id="recordTitle">記錄</div>
+        <div class="card-body">
+          <div class="inline-note" id="fixedStartNote"></div>
+          <div style="height:10px;"></div>
+          <div class="record-range">
+            <div>
+              <label for="toBook">結束卷</label>
+              <select id="toBook"></select>
+            </div>
+            <div>
+              <label for="toChapter">結束章</label>
+              <select id="toChapter"></select>
+            </div>
+          </div>
+          <div style="height:12px;"></div>
+          <div>
+            <label for="noteInput">備註</label>
+            <textarea id="noteInput" placeholder="例如：今天讀到啟示錄 15 章"></textarea>
+          </div>
+          <div style="height:12px;"></div>
+          <div class="inline-note">本次將記錄 <strong id="rangeCount">0</strong> 章</div>
+          <div style="height:12px;"></div>
+          <button class="primary" id="addEntryBtn" style="width:100%;">加入這一天的進度</button>
+          <div class="status-line" id="formStatus"></div>
+          <div style="height:18px;"></div>
+          <div style="font-weight:700; margin-bottom:8px;">當日已記錄</div>
+          <div class="entry-list" id="selectedDayEntries"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:16px;">
+      <div class="card-header">累計進度 vs 目標線</div>
+      <div class="card-body">
+        <canvas id="progressChart" height="110"></canvas>
+      </div>
+    </div>
+
+    <div class="footer-note">
+      這個版本支援雲端同步，但需要你自己提供 Supabase 專案資訊。<br>
+      第一次使用流程：先在 Supabase 建專案並執行附上的 SQL，接著把 URL、anon key、同步識別碼貼進來，再按「用目前進度初始化雲端」。<br>
+      之後在另一台裝置，只要輸入同一組 Supabase URL、anon key、同步識別碼，再按「從雲端讀取」，就會看到同一份資料。
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="cloudModalBackdrop">
+    <div class="modal">
+      <div class="card-header">雲端同步設定</div>
+      <div class="card-body">
+        <div class="field-grid">
+          <div>
+            <label for="supabaseUrl">Supabase URL</label>
+            <input id="supabaseUrl" placeholder="https://xxxx.supabase.co" />
+          </div>
+          <div>
+            <label for="profileKey">同步識別碼</label>
+            <input id="profileKey" placeholder="例如 huang-nt-01" />
+          </div>
+        </div>
+        <div style="height:12px;"></div>
+        <div>
+          <label for="supabaseAnonKey">Supabase anon public key</label>
+          <textarea id="supabaseAnonKey" placeholder="貼上你的 anon public key"></textarea>
+        </div>
+        <div style="height:12px;"></div>
+        <label><input type="checkbox" id="autoSyncCheck" /> 每次新增或刪除後自動同步到雲端</label>
+        <div style="height:14px;"></div>
+        <div class="toolbar">
+          <button class="primary" id="saveCloudConfigBtn">儲存設定</button>
+          <button id="loadCloudBtn">從雲端讀取</button>
+          <button id="seedCloudBtn">用目前進度初始化雲端</button>
+          <button id="closeCloudBtn">關閉</button>
+          <button id="disconnectCloudBtn" class="danger">清除雲端設定</button>
+        </div>
+        <div class="status-line" id="cloudStatusText"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const NT_BOOKS = [
+      { name: "馬太福音", chapters: 28 },
+      { name: "馬可福音", chapters: 16 },
+      { name: "路加福音", chapters: 24 },
+      { name: "約翰福音", chapters: 21 },
+      { name: "使徒行傳", chapters: 28 },
+      { name: "羅馬書", chapters: 16 },
+      { name: "哥林多前書", chapters: 16 },
+      { name: "哥林多後書", chapters: 13 },
+      { name: "加拉太書", chapters: 6 },
+      { name: "以弗所書", chapters: 6 },
+      { name: "腓立比書", chapters: 4 },
+      { name: "歌羅西書", chapters: 4 },
+      { name: "帖撒羅尼迦前書", chapters: 5 },
+      { name: "帖撒羅尼迦後書", chapters: 3 },
+      { name: "提摩太前書", chapters: 6 },
+      { name: "提摩太後書", chapters: 4 },
+      { name: "提多書", chapters: 3 },
+      { name: "腓利門書", chapters: 1 },
+      { name: "希伯來書", chapters: 13 },
+      { name: "雅各書", chapters: 5 },
+      { name: "彼得前書", chapters: 5 },
+      { name: "彼得後書", chapters: 3 },
+      { name: "約翰一書", chapters: 5 },
+      { name: "約翰二書", chapters: 1 },
+      { name: "約翰三書", chapters: 1 },
+      { name: "猶大書", chapters: 1 },
+      { name: "啟示錄", chapters: 22 }
+    ];
+
+    const BOOK_STARTS = (() => {
+      let sum = 0;
+      return NT_BOOKS.map(b => {
+        const start = sum + 1;
+        sum += b.chapters;
+        return start;
+      });
+    })();
+
+    const DEFAULT_STATE = {
+      settings: {
+        startDate: "2026-03-21",
+        trackingStartDate: "2026-04-05",
+        endDate: "2026-06-30",
+        ntChaptersPerRound: 260,
+        targetRounds: 5,
+        baselineDate: "2026-04-04",
+        baselineLabel: "截至 4/4 已讀完以弗所書",
+        baselineChapters: 174
+      },
+      selectedDate: "2026-06-11",
+      calendarYear: 2026,
+      calendarMonth: 5,
+      formToBook: "啟示錄",
+      formToChapter: "15",
+      note: "",
+      cloud: {
+        url: "",
+        anonKey: "",
+        profileKey: "",
+        autoSync: false
+      },
+      entries: [
+        {"id":"90d23315-f9e6-47c0-aa5e-4facc1bbe852","date":"2026-04-05","fromBook":"腓立比書","fromChapter":1,"toBook":"提摩太後書","toChapter":4,"chaptersRead":26,"note":"","createdAt":"2026-04-12T08:53:44.751Z"},
+        {"id":"596cc52c-f110-40f9-9888-0d6458d21bba","date":"2026-04-06","fromBook":"提多書","fromChapter":1,"toBook":"希伯來書","toChapter":4,"chaptersRead":8,"note":"","createdAt":"2026-04-12T08:53:55.415Z"},
+        {"id":"3a85d83c-56dd-4226-a957-b355520fb2a5","date":"2026-04-07","fromBook":"希伯來書","fromChapter":5,"toBook":"彼得前書","toChapter":5,"chaptersRead":19,"note":"","createdAt":"2026-04-12T08:54:07.333Z"},
+        {"id":"97c20bfe-b4ad-4685-ab40-e0198f672220","date":"2026-04-08","fromBook":"彼得後書","fromChapter":1,"toBook":"啟示錄","toChapter":3,"chaptersRead":14,"note":"","createdAt":"2026-04-12T08:54:16.983Z"},
+        {"id":"b88bcec1-2c25-4f79-a91c-5eb1ffbbbcee","date":"2026-04-09","fromBook":"啟示錄","fromChapter":4,"toBook":"啟示錄","toChapter":18,"chaptersRead":15,"note":"","createdAt":"2026-04-12T08:54:25.368Z"},
+        {"id":"5442ee03-428c-40b2-8b0e-89ff06776252","date":"2026-04-10","fromBook":"啟示錄","fromChapter":19,"toBook":"啟示錄","toChapter":22,"chaptersRead":4,"note":"","createdAt":"2026-04-12T08:54:30.450Z"},
+        {"id":"cacf6b1f-265f-431c-bb13-581ecc61705b","date":"2026-04-10","fromBook":"馬太福音","fromChapter":1,"toBook":"馬太福音","toChapter":8,"chaptersRead":8,"note":"","createdAt":"2026-04-12T08:54:43.702Z"},
+        {"id":"ec244c63-dd3a-4f64-8d6b-4b5481793f1e","date":"2026-04-11","fromBook":"馬太福音","fromChapter":9,"toBook":"馬太福音","toChapter":13,"chaptersRead":5,"note":"","createdAt":"2026-04-12T08:54:50.768Z"},
+        {"id":"41d2df2d-6a76-4174-b56f-42b5f7ee59c0","date":"2026-04-12","fromBook":"馬太福音","fromChapter":14,"toBook":"馬太福音","toChapter":18,"chaptersRead":5,"note":"","createdAt":"2026-04-12T08:54:56.836Z"},
+        {"id":"3423fa02-45fb-4243-8dd8-a3cd58d7d083","date":"2026-04-13","fromBook":"馬太福音","fromChapter":19,"toBook":"馬可福音","toChapter":2,"chaptersRead":12,"note":"","createdAt":"2026-04-13T14:59:09.858Z"},
+        {"id":"22132929-18d0-4ab5-bca5-56f052372a8a","date":"2026-04-14","fromBook":"馬可福音","fromChapter":3,"toBook":"馬可福音","toChapter":16,"chaptersRead":14,"note":"","createdAt":"2026-04-14T06:19:23.350Z"},
+        {"id":"82fdc4cf-7bb6-4fef-98ef-bb8af626302c","date":"2026-04-14","fromBook":"路加福音","fromChapter":1,"toBook":"路加福音","toChapter":2,"chaptersRead":2,"note":"","createdAt":"2026-04-14T16:47:54.984Z"},
+        {"id":"d646cea6-0dd9-497b-9ac4-0237d7a4c6cf","date":"2026-04-15","fromBook":"路加福音","fromChapter":3,"toBook":"路加福音","toChapter":18,"chaptersRead":16,"note":"","createdAt":"2026-04-15T16:50:05.805Z"},
+        {"id":"590f25bc-2752-4018-b987-6a48ca834340","date":"2026-04-15","fromBook":"路加福音","fromChapter":19,"toBook":"路加福音","toChapter":19,"chaptersRead":1,"note":"","createdAt":"2026-04-15T16:53:41.308Z"},
+        {"id":"2ea79d64-4063-4245-b2c1-f84865982968","date":"2026-04-16","fromBook":"路加福音","fromChapter":20,"toBook":"約翰福音","toChapter":6,"chaptersRead":11,"note":"","createdAt":"2026-04-16T16:14:09.740Z"},
+        {"id":"18027cec-6e6b-44a4-9b18-f800c6738bca","date":"2026-04-17","fromBook":"約翰福音","fromChapter":7,"toBook":"約翰福音","toChapter":21,"chaptersRead":15,"note":"","createdAt":"2026-04-17T11:16:50.938Z"},
+        {"id":"f01f56aa-eafa-4c1e-919b-d28bf55a8ae6","date":"2026-04-17","fromBook":"使徒行傳","fromChapter":1,"toBook":"使徒行傳","toChapter":2,"chaptersRead":2,"note":"","createdAt":"2026-04-17T11:32:09.088Z"},
+        {"id":"d2b7a478-ad70-467b-8aeb-81cb5de0d075","date":"2026-04-18","fromBook":"使徒行傳","fromChapter":3,"toBook":"使徒行傳","toChapter":14,"chaptersRead":12,"note":"","createdAt":"2026-04-18T15:05:31.720Z"},
+        {"id":"a0c09190-7b5f-4813-8ac4-88e5d64b5aa5","date":"2026-04-19","fromBook":"使徒行傳","fromChapter":15,"toBook":"使徒行傳","toChapter":28,"chaptersRead":14,"note":"","createdAt":"2026-04-19T12:23:22.092Z"},
+        {"id":"68b64949-4571-4a65-96a0-1a9529149e13","date":"2026-04-20","fromBook":"羅馬書","fromChapter":1,"toBook":"羅馬書","toChapter":16,"chaptersRead":16,"note":"","createdAt":"2026-04-20T13:32:50.253Z"},
+        {"id":"92d918a1-8747-44e2-847d-cc61b6150837","date":"2026-04-21","fromBook":"哥林多前書","fromChapter":1,"toBook":"哥林多前書","toChapter":11,"chaptersRead":11,"note":"","createdAt":"2026-04-21T14:26:42.107Z"},
+        {"id":"37e49f7c-b687-47c9-a9e8-30cee488517d","date":"2026-04-22","fromBook":"哥林多前書","fromChapter":12,"toBook":"哥林多後書","toChapter":7,"chaptersRead":12,"note":"","createdAt":"2026-04-22T15:17:32.664Z"},
+        {"id":"bc412d2e-7668-474d-924a-36b6b42f9b30","date":"2026-04-23","fromBook":"哥林多後書","fromChapter":8,"toBook":"哥林多後書","toChapter":13,"chaptersRead":6,"note":"","createdAt":"2026-04-23T13:11:24.049Z"},
+        {"id":"d963308c-5abf-40a0-ba55-c11d6b77eeb1","date":"2026-04-24","fromBook":"加拉太書","fromChapter":1,"toBook":"腓立比書","toChapter":4,"chaptersRead":16,"note":"","createdAt":"2026-04-25T07:21:05.444Z"},
+        {"id":"07166add-d5cd-4b30-8b22-92f509a09821","date":"2026-04-25","fromBook":"歌羅西書","fromChapter":1,"toBook":"帖撒羅尼迦後書","toChapter":3,"chaptersRead":12,"note":"","createdAt":"2026-04-25T17:14:16.785Z"},
+        {"id":"8ddd0b3b-9ea9-4042-8d3f-864e7e85ad44","date":"2026-04-26","fromBook":"提摩太前書","fromChapter":1,"toBook":"腓利門書","toChapter":1,"chaptersRead":14,"note":"","createdAt":"2026-04-26T14:52:17.208Z"},
+        {"id":"10e37c83-68a3-4f56-a1b1-e6e2b98f5015","date":"2026-04-27","fromBook":"希伯來書","fromChapter":1,"toBook":"希伯來書","toChapter":13,"chaptersRead":13,"note":"","createdAt":"2026-04-27T15:01:41.292Z"},
+        {"id":"bccb34cd-ad11-44cc-86b6-7d9d36e036c4","date":"2026-04-28","fromBook":"雅各書","fromChapter":1,"toBook":"約翰一書","toChapter":1,"chaptersRead":14,"note":"","createdAt":"2026-04-28T14:59:46.649Z"},
+        {"id":"85d613e4-7509-4320-b880-859b3185b061","date":"2026-04-29","fromBook":"約翰一書","fromChapter":2,"toBook":"啟示錄","toChapter":7,"chaptersRead":14,"note":"","createdAt":"2026-04-29T13:41:45.844Z"},
+        {"id":"e51c524c-bd3c-4d2d-a8ef-27e8849ccc87","date":"2026-04-30","fromBook":"啟示錄","fromChapter":8,"toBook":"啟示錄","toChapter":22,"chaptersRead":15,"note":"","createdAt":"2026-05-01T01:20:08.085Z"},
+        {"id":"54b8c2e9-2924-43cd-8782-4c6b6122a1d8","date":"2026-04-30","fromBook":"馬太福音","fromChapter":1,"toBook":"馬太福音","toChapter":1,"chaptersRead":1,"note":"","createdAt":"2026-05-01T01:20:19.363Z"},
+        {"id":"7b2ef3e9-b97c-4b90-9747-ebaa18c09f84","date":"2026-05-01","fromBook":"馬太福音","fromChapter":2,"toBook":"馬太福音","toChapter":14,"chaptersRead":13,"note":"","createdAt":"2026-05-01T14:49:59.245Z"},
+        {"id":"53c473dc-48d2-460b-909b-1cbe1105ab2f","date":"2026-05-02","fromBook":"馬太福音","fromChapter":15,"toBook":"馬太福音","toChapter":25,"chaptersRead":11,"note":"","createdAt":"2026-05-02T15:56:46.464Z"},
+        {"id":"f1b6beda-e82e-47e6-be1c-48194415765e","date":"2026-05-03","fromBook":"馬太福音","fromChapter":26,"toBook":"馬可福音","toChapter":10,"chaptersRead":13,"note":"","createdAt":"2026-05-03T14:33:29.150Z"},
+        {"id":"cc39afde-77b7-447f-95dc-b57c168078b0","date":"2026-05-04","fromBook":"馬可福音","fromChapter":11,"toBook":"路加福音","toChapter":4,"chaptersRead":10,"note":"","createdAt":"2026-05-04T11:49:37.686Z"},
+        {"id":"d38da3bc-6602-4f0d-a1ad-6237ba3805d4","date":"2026-05-05","fromBook":"路加福音","fromChapter":5,"toBook":"路加福音","toChapter":14,"chaptersRead":10,"note":"","createdAt":"2026-05-05T13:27:57.328Z"},
+        {"id":"d85ec01b-b30d-473e-85c0-6dada0e1d0a8","date":"2026-05-06","fromBook":"路加福音","fromChapter":15,"toBook":"路加福音","toChapter":24,"chaptersRead":10,"note":"","createdAt":"2026-05-06T06:48:07.029Z"},
+        {"id":"f25af1a7-3575-4b34-995c-11a2cc9f2e03","date":"2026-05-07","fromBook":"約翰福音","fromChapter":1,"toBook":"約翰福音","toChapter":8,"chaptersRead":8,"note":"","createdAt":"2026-05-08T05:39:44.636Z"},
+        {"id":"5ca4c523-9e7d-4f4d-8644-8da12e6001ee","date":"2026-05-08","fromBook":"約翰福音","fromChapter":9,"toBook":"約翰福音","toChapter":9,"chaptersRead":1,"note":"","createdAt":"2026-05-08T15:39:03.738Z"},
+        {"id":"8410199e-d6a4-4254-9b6f-e4c4a3ac4b4c","date":"2026-05-08","fromBook":"約翰福音","fromChapter":10,"toBook":"約翰福音","toChapter":11,"chaptersRead":2,"note":"","createdAt":"2026-05-08T15:47:53.278Z"},
+        {"id":"d96a7969-764e-415b-b00b-0d043e66027e","date":"2026-05-09","fromBook":"約翰福音","fromChapter":12,"toBook":"使徒行傳","toChapter":28,"chaptersRead":38,"note":"","createdAt":"2026-05-09T15:01:28.245Z"},
+        {"id":"ec7be197-89d2-4d22-9995-a091903e42e6","date":"2026-05-10","fromBook":"羅馬書","fromChapter":1,"toBook":"羅馬書","toChapter":13,"chaptersRead":13,"note":"","createdAt":"2026-05-10T10:13:36.092Z"},
+        {"id":"543d197a-0597-4f07-b399-a59db875e4e3","date":"2026-05-11","fromBook":"羅馬書","fromChapter":14,"toBook":"哥林多前書","toChapter":7,"chaptersRead":10,"note":"","createdAt":"2026-05-11T12:02:02.744Z"},
+        {"id":"0dc38418-58da-4ecb-91a7-354fee0f1102","date":"2026-05-11","fromBook":"哥林多前書","fromChapter":8,"toBook":"哥林多前書","toChapter":8,"chaptersRead":1,"note":"","createdAt":"2026-05-11T12:03:35.357Z"},
+        {"id":"4fcee06b-8d58-4111-9ebe-2295871aecf4","date":"2026-05-12","fromBook":"哥林多前書","fromChapter":9,"toBook":"哥林多後書","toChapter":1,"chaptersRead":9,"note":"","createdAt":"2026-05-12T16:03:22.436Z"},
+        {"id":"34a4d24b-f5ac-4cd6-b1e2-75368dfde78f","date":"2026-05-13","fromBook":"哥林多後書","fromChapter":2,"toBook":"哥林多後書","toChapter":13,"chaptersRead":12,"note":"","createdAt":"2026-05-13T16:10:43.809Z"},
+        {"id":"891c21cb-9272-42a8-b3eb-b61771d6f021","date":"2026-05-14","fromBook":"加拉太書","fromChapter":1,"toBook":"加拉太書","toChapter":6,"chaptersRead":6,"note":"","createdAt":"2026-05-14T13:59:56.197Z"},
+        {"id":"e1345058-6383-4e0a-bfb3-925f2a1625e6","date":"2026-05-15","fromBook":"以弗所書","fromChapter":1,"toBook":"帖撒羅尼迦前書","toChapter":5,"chaptersRead":19,"note":"","createdAt":"2026-05-15T16:14:40.233Z"},
+        {"id":"f0c31522-47b6-4668-a099-b5002ed66829","date":"2026-05-15","fromBook":"帖撒羅尼迦後書","fromChapter":1,"toBook":"帖撒羅尼迦後書","toChapter":3,"chaptersRead":3,"note":"","createdAt":"2026-05-15T16:19:34.360Z"},
+        {"id":"40c7b2c9-ab7d-4dfc-8689-bbaf97c6dd99","date":"2026-05-16","fromBook":"提摩太前書","fromChapter":1,"toBook":"腓利門書","toChapter":1,"chaptersRead":14,"note":"","createdAt":"2026-05-16T13:38:00.997Z"},
+        {"id":"96901879-d842-46e7-a4bc-ee22230c9245","date":"2026-05-17","fromBook":"希伯來書","fromChapter":1,"toBook":"希伯來書","toChapter":13,"chaptersRead":13,"note":"","createdAt":"2026-05-17T14:18:06.759Z"},
+        {"id":"8e4db48a-589a-4de0-b47d-0ac5cdc48a96","date":"2026-05-18","fromBook":"雅各書","fromChapter":1,"toBook":"彼得後書","toChapter":3,"chaptersRead":13,"note":"","createdAt":"2026-05-18T13:07:36.602Z"},
+        {"id":"aac629df-d459-4b51-804c-669dc8ad365a","date":"2026-05-19","fromBook":"約翰一書","fromChapter":1,"toBook":"猶大書","toChapter":1,"chaptersRead":8,"note":"","createdAt":"2026-05-19T16:55:04.959Z"},
+        {"id":"94525b62-b4b0-4007-a775-e847908d62bd","date":"2026-05-20","fromBook":"啟示錄","fromChapter":1,"toBook":"啟示錄","toChapter":17,"chaptersRead":17,"note":"","createdAt":"2026-05-20T13:42:42.615Z"},
+        {"id":"b56c1a2a-e93d-46dd-83b8-2eee273c4862","date":"2026-05-21","fromBook":"啟示錄","fromChapter":18,"toBook":"啟示錄","toChapter":22,"chaptersRead":5,"note":"","createdAt":"2026-05-21T06:40:07.656Z"},
+        {"id":"f4e296d7-fb90-4584-97d0-7091bcd58f43","date":"2026-05-21","fromBook":"馬太福音","fromChapter":1,"toBook":"馬太福音","toChapter":8,"chaptersRead":8,"note":"","createdAt":"2026-05-21T12:31:50.828Z"},
+        {"id":"ca96d5fc-1d2a-4ab5-9c95-2b631c0c793c","date":"2026-05-22","fromBook":"馬太福音","fromChapter":9,"toBook":"馬太福音","toChapter":17,"chaptersRead":9,"note":"","createdAt":"2026-05-22T15:39:33.798Z"},
+        {"id":"e620e1d7-e3a8-4042-a092-027527320e42","date":"2026-05-23","fromBook":"馬太福音","fromChapter":18,"toBook":"馬太福音","toChapter":28,"chaptersRead":11,"note":"","createdAt":"2026-05-23T16:46:32.559Z"},
+        {"id":"612913d1-af35-4378-9eb5-104a16836eee","date":"2026-05-24","fromBook":"馬可福音","fromChapter":1,"toBook":"馬可福音","toChapter":14,"chaptersRead":14,"note":"","createdAt":"2026-05-24T14:27:55.715Z"},
+        {"id":"ba98e822-5315-4697-baf8-478a3b46f211","date":"2026-05-25","fromBook":"馬可福音","fromChapter":15,"toBook":"路加福音","toChapter":12,"chaptersRead":14,"note":"","createdAt":"2026-05-25T14:10:25.620Z"},
+        {"id":"afffa482-36cf-467f-a4b4-9ae8e311d974","date":"2026-05-26","fromBook":"路加福音","fromChapter":13,"toBook":"路加福音","toChapter":24,"chaptersRead":12,"note":"","createdAt":"2026-05-26T14:08:09.983Z"},
+        {"id":"25b00af2-edfb-423e-b6a8-a22e67485a46","date":"2026-05-27","fromBook":"約翰福音","fromChapter":1,"toBook":"約翰福音","toChapter":4,"chaptersRead":4,"note":"","createdAt":"2026-05-28T06:15:41.594Z"},
+        {"id":"af0cbd8a-0022-428d-a1a4-fc1e7d3e73d3","date":"2026-05-28","fromBook":"約翰福音","fromChapter":5,"toBook":"約翰福音","toChapter":21,"chaptersRead":17,"note":"","createdAt":"2026-05-28T16:43:24.848Z"},
+        {"id":"6b499dcf-893e-4365-9b02-c13d22d0bad1","date":"2026-05-29","fromBook":"使徒行傳","fromChapter":1,"toBook":"使徒行傳","toChapter":15,"chaptersRead":15,"note":"","createdAt":"2026-05-30T06:07:33.776Z"},
+        {"id":"9515b3f2-92de-429e-9038-1a65298eef15","date":"2026-05-30","fromBook":"使徒行傳","fromChapter":16,"toBook":"羅馬書","toChapter":4,"chaptersRead":17,"note":"","createdAt":"2026-05-30T14:54:46.936Z"},
+        {"id":"c22bc017-e991-42cb-928d-ce2320ea0a6a","date":"2026-05-31","fromBook":"羅馬書","fromChapter":5,"toBook":"羅馬書","toChapter":5,"chaptersRead":1,"note":"","createdAt":"2026-06-01T11:54:25.555Z"},
+        {"id":"829e3620-71e9-4b9a-9454-9f6d4d7ad0b1","date":"2026-06-01","fromBook":"羅馬書","fromChapter":6,"toBook":"羅馬書","toChapter":16,"chaptersRead":11,"note":"","createdAt":"2026-06-01T16:02:35.334Z"},
+        {"id":"01a057ca-963d-41a1-9194-8eb635b88a1b","date":"2026-06-02","fromBook":"哥林多前書","fromChapter":1,"toBook":"哥林多前書","toChapter":16,"chaptersRead":16,"note":"","createdAt":"2026-06-02T14:16:47.975Z"},
+        {"id":"71d4ed4d-6012-4e8a-8cc9-d9d2543d5fa3","date":"2026-06-03","fromBook":"哥林多後書","fromChapter":1,"toBook":"哥林多後書","toChapter":13,"chaptersRead":13,"note":"","createdAt":"2026-06-03T16:15:49.591Z"},
+        {"id":"bd8be6a6-616c-4a29-a819-7f4ef2db27c6","date":"2026-06-03","fromBook":"加拉太書","fromChapter":1,"toBook":"加拉太書","toChapter":2,"chaptersRead":2,"note":"","createdAt":"2026-06-03T16:52:36.932Z"},
+        {"id":"b2cdba6e-59a3-4f36-81bc-d68082d3ec75","date":"2026-06-04","fromBook":"加拉太書","fromChapter":3,"toBook":"歌羅西書","toChapter":4,"chaptersRead":18,"note":"","createdAt":"2026-06-04T12:47:07.808Z"},
+        {"id":"6d5a7965-894a-47c4-a6ab-a0a73e636cfb","date":"2026-06-05","fromBook":"帖撒羅尼迦前書","fromChapter":1,"toBook":"提摩太前書","toChapter":6,"chaptersRead":14,"note":"","createdAt":"2026-06-05T15:16:34.743Z"},
+        {"id":"25c1f201-be83-4ff9-a5d7-0af001d1fa47","date":"2026-06-06","fromBook":"提摩太後書","fromChapter":1,"toBook":"希伯來書","toChapter":6,"chaptersRead":14,"note":"","createdAt":"2026-06-06T16:21:43.751Z"},
+        {"id":"7d509144-517d-4ae5-aba9-8e8bef1cf2b8","date":"2026-06-07","fromBook":"希伯來書","fromChapter":7,"toBook":"希伯來書","toChapter":8,"chaptersRead":2,"note":"","createdAt":"2026-06-07T17:22:22.409Z"},
+        {"id":"2557b4b7-ddd5-4cc0-a200-28352877aa5d","date":"2026-06-08","fromBook":"希伯來書","fromChapter":9,"toBook":"雅各書","toChapter":5,"chaptersRead":10,"note":"","createdAt":"2026-06-08T14:44:59.858Z"},
+        {"id":"fb54acb2-de54-43c3-b214-41d5de68f14b","date":"2026-06-09","fromBook":"彼得前書","fromChapter":1,"toBook":"約翰一書","toChapter":2,"chaptersRead":10,"note":"","createdAt":"2026-06-09T13:55:56.417Z"},
+        {"id":"6e70884c-a13d-4bca-a3b3-68045fc33689","date":"2026-06-09","fromBook":"約翰一書","fromChapter":3,"toBook":"約翰三書","toChapter":1,"chaptersRead":5,"note":"","createdAt":"2026-06-09T14:06:24.530Z"},
+        {"id":"06d51749-b2d8-49ce-97d3-50d54b03cffe","date":"2026-06-09","fromBook":"猶大書","fromChapter":1,"toBook":"猶大書","toChapter":1,"chaptersRead":1,"note":"","createdAt":"2026-06-09T16:40:55.692Z"},
+        {"id":"3e60642e-c7ec-455a-a3ce-f81758deac21","date":"2026-06-10","fromBook":"啟示錄","fromChapter":1,"toBook":"啟示錄","toChapter":14,"chaptersRead":14,"note":"","createdAt":"2026-06-10T13:47:39.842Z"}
+      ]
+    };
+
+    const STORAGE_KEY = "nt-reading-cloud-site-v1";
+    let state = loadState();
+    let chart;
+
+    function loadState() {
+      try {
+        const local = localStorage.getItem(STORAGE_KEY);
+        if (local) {
+          const parsed = JSON.parse(local);
+          return mergeState(DEFAULT_STATE, parsed);
+        }
+      } catch (e) {}
+      return structuredClone(DEFAULT_STATE);
+    }
+
+    function mergeState(base, patch) {
+      return {
+        ...structuredClone(base),
+        ...patch,
+        settings: { ...base.settings, ...(patch?.settings || {}) },
+        cloud: { ...base.cloud, ...(patch?.cloud || {}) },
+        entries: Array.isArray(patch?.entries) ? patch.entries : base.entries
+      };
+    }
+
+    function saveLocal() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
+
+    function pad(n) { return String(n).padStart(2, "0"); }
+    function todayStr() {
+      const d = new Date();
+      return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+    }
+    function toDate(s) { return new Date(`${s}T00:00:00`); }
+    function dateToStr(d) { return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; }
+    function round2(n) { return Math.round(n * 100) / 100; }
+    function clamp(n, min, max) { return Math.min(Math.max(n, min), max); }
+    function daysInclusive(start, end) { return Math.floor((toDate(end) - toDate(start)) / 86400000) + 1; }
+    function elapsedDaysInclusive(start, current, end) {
+      if (toDate(current) < toDate(start)) return 0;
+      if (toDate(current) > toDate(end)) return daysInclusive(start, end);
+      return daysInclusive(start, current);
+    }
+    function chapterOptions(bookName) {
+      const book = NT_BOOKS.find(b => b.name === bookName);
+      return Array.from({ length: book.chapters }, (_, i) => i + 1);
+    }
+    function chapterToGlobal(bookName, chapter) {
+      const idx = NT_BOOKS.findIndex(b => b.name === bookName);
+      if (idx === -1) return null;
+      return BOOK_STARTS[idx] + Number(chapter) - 1;
+    }
+    function globalToBookChapter(globalChapter) {
+      let g = globalChapter;
+      while (g > 260) g -= 260;
+      while (g < 1) g += 260;
+      for (let i = 0; i < NT_BOOKS.length; i++) {
+        const start = BOOK_STARTS[i];
+        const end = start + NT_BOOKS[i].chapters - 1;
+        if (g >= start && g <= end) return { book: NT_BOOKS[i].name, chapter: g - start + 1 };
+      }
+      return { book: "馬太福音", chapter: 1 };
+    }
+    function calcRangeLength(fromBook, fromChapter, toBook, toChapter) {
+      const start = chapterToGlobal(fromBook, fromChapter);
+      const end = chapterToGlobal(toBook, toChapter);
+      if (!start || !end || end < start) return 0;
+      return end - start + 1;
+    }
+    function formatDelta(n) {
+      const v = round2(Math.abs(n));
+      if (n > 0) return `超前 ${v} 章`;
+      if (n < 0) return `落後 ${v} 章`;
+      return "剛好達標";
+    }
+    function normalizeEntries(entries) {
+      return [...entries].sort((a, b) => {
+        if (a.date !== b.date) return a.date.localeCompare(b.date);
+        return String(a.createdAt || "").localeCompare(String(b.createdAt || ""));
+      });
+    }
+    function getMonthMatrix(year, month) {
+      const first = new Date(year, month, 1);
+      const startDay = first.getDay();
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+      const prevMonthDays = new Date(year, month, 0).getDate();
+      const cells = [];
+      for (let i = 0; i < 42; i++) {
+        const dayNum = i - startDay + 1;
+        if (dayNum <= 0) cells.push({ date: new Date(year, month - 1, prevMonthDays + dayNum), currentMonth: false });
+        else if (dayNum > daysInMonth) cells.push({ date: new Date(year, month + 1, dayNum - daysInMonth), currentMonth: false });
+        else cells.push({ date: new Date(year, month, dayNum), currentMonth: true });
+      }
+      return cells;
+    }
+
+    function getDerived() {
+      const settings = state.settings;
+      const entries = normalizeEntries(state.entries);
+      const totalTarget = settings.ntChaptersPerRound * settings.targetRounds;
+      const totalDays = daysInclusive(settings.startDate, settings.endDate);
+      const today = todayStr();
+      const actualDone = round2(settings.baselineChapters + entries.reduce((sum, e) => sum + Number(e.chaptersRead || 0), 0));
+      const expectedByToday = round2(totalTarget * (elapsedDaysInclusive(settings.startDate, today, settings.endDate) / totalDays));
+      const deltaToday = round2(actualDone - expectedByToday);
+      const remaining = Math.max(totalTarget - actualDone, 0);
+      const remainingDays = toDate(today) > toDate(settings.endDate) ? 0 : daysInclusive(today, settings.endDate);
+      const neededPerDay = remainingDays > 0 ? round2(remaining / remainingDays) : round2(remaining);
+      const overallPercent = totalTarget > 0 ? clamp((actualDone / totalTarget) * 100, 0, 100) : 0;
+      const completedRounds = round2(actualDone / settings.ntChaptersPerRound);
+      const totalExtra = entries.reduce((sum, e) => sum + Number(e.chaptersRead || 0), 0);
+      const nextReadingPoint = globalToBookChapter(settings.baselineChapters + totalExtra + 1);
+      const suggestedTargetChapterCount = Math.max(1, Math.ceil(expectedByToday));
+      const suggestedTargetPoint = globalToBookChapter(suggestedTargetChapterCount);
+      const todaySuggestedRemaining = Math.max(0, suggestedTargetChapterCount - actualDone);
+      const isOnTrackToday = actualDone >= suggestedTargetChapterCount;
+      const dailyTotals = new Map();
+      for (const e of entries) dailyTotals.set(e.date, round2((dailyTotals.get(e.date) || 0) + e.chaptersRead));
+      const selectedEntries = entries.filter(e => e.date === state.selectedDate);
+      const chartData = [];
+      let runningExtra = 0;
+      for (let d = new Date(toDate(settings.startDate)); d <= toDate(settings.endDate); d.setDate(d.getDate()+1)) {
+        const ds = dateToStr(d);
+        runningExtra += dailyTotals.get(ds) || 0;
+        chartData.push({
+          date: ds.slice(5),
+          target: round2(totalTarget * (elapsedDaysInclusive(settings.startDate, ds, settings.endDate) / totalDays)),
+          actual: round2(settings.baselineChapters + runningExtra)
+        });
+      }
+      return { settings, entries, totalTarget, totalDays, today, actualDone, expectedByToday, deltaToday, remaining, remainingDays, neededPerDay, overallPercent, completedRounds, nextReadingPoint, suggestedTargetPoint, todaySuggestedRemaining, isOnTrackToday, dailyTotals, selectedEntries, chartData };
+    }
+
+    function render() {
+      const d = getDerived();
+      document.getElementById("metricDone").textContent = d.actualDone;
+      document.getElementById("metricRounds").textContent = `約 ${d.completedRounds} 遍`;
+      document.getElementById("metricExpected").textContent = d.expectedByToday;
+      document.getElementById("metricDelta").textContent = Math.abs(d.deltaToday);
+      const deltaText = document.getElementById("metricDeltaText");
+      deltaText.textContent = formatDelta(d.deltaToday);
+      deltaText.className = `metric-sub ${d.deltaToday >= 0 ? "good" : "bad"}`;
+      document.getElementById("metricNeed").textContent = d.neededPerDay;
+      document.getElementById("metricRemain").textContent = `剩 ${round2(d.remaining)} 章 / ${d.remainingDays} 天`;
+      document.getElementById("progressText").textContent = `${d.actualDone} / ${d.totalTarget} 章`;
+      document.getElementById("progressBar").style.width = `${d.overallPercent}%`;
+      document.getElementById("goalInfo").innerHTML = `期間：${d.settings.startDate} ～ ${d.settings.endDate}<br>新約每遍：${d.settings.ntChaptersPerRound} 章<br>總目標：${d.totalTarget} 章<br>總天數：${d.totalDays} 天<br>平均每日基準：${round2(d.totalTarget / d.totalDays)} 章`;
+      document.getElementById("nextReadingPoint").textContent = `${d.nextReadingPoint.book} ${d.nextReadingPoint.chapter} 章`;
+      document.getElementById("todayTarget").textContent = `${d.suggestedTargetPoint.book} ${d.suggestedTargetPoint.chapter} 章`;
+      const todaySub = document.getElementById("todayTargetSub");
+      todaySub.textContent = d.isOnTrackToday ? "今天已達標或超前" : `今天還差 ${round2(d.todaySuggestedRemaining)} 章可達標`;
+      todaySub.className = `metric-sub ${d.isOnTrackToday ? "good" : "bad"}`;
+      document.getElementById("recordTitle").textContent = `記錄 ${state.selectedDate}`;
+      document.getElementById("fixedStartNote").innerHTML = `起始章節固定為 <strong>${d.nextReadingPoint.book} ${d.nextReadingPoint.chapter} 章</strong>，你只能往後記錄。`;
+      document.getElementById("noteInput").value = state.note || "";
+      renderToSelectors(d.nextReadingPoint);
+      renderCalendar(d.dailyTotals);
+      renderSelectedEntries(d.selectedEntries);
+      renderChart(d.chartData, d.totalTarget, d.actualDone);
+      renderCloudStatus();
+      saveLocal();
+    }
+
+    function renderToSelectors(nextReadingPoint) {
+      const toBook = document.getElementById("toBook");
+      const toChapter = document.getElementById("toChapter");
+      const startGlobal = chapterToGlobal(nextReadingPoint.book, nextReadingPoint.chapter);
+      toBook.innerHTML = "";
+      NT_BOOKS.forEach(book => {
+        if (chapterToGlobal(book.name, 1) >= startGlobal || book.name === nextReadingPoint.book) {
+          const opt = document.createElement("option");
+          opt.value = book.name;
+          opt.textContent = book.name;
+          if (book.name === state.formToBook) opt.selected = true;
+          toBook.appendChild(opt);
+        }
+      });
+      if (![...toBook.options].some(o => o.value === state.formToBook)) state.formToBook = nextReadingPoint.book;
+      toChapter.innerHTML = "";
+      chapterOptions(state.formToBook).forEach(ch => {
+        const g = chapterToGlobal(state.formToBook, ch);
+        if (g >= startGlobal) {
+          const opt = document.createElement("option");
+          opt.value = String(ch);
+          opt.textContent = `${ch} 章`;
+          if (String(ch) === String(state.formToChapter)) opt.selected = true;
+          toChapter.appendChild(opt);
+        }
+      });
+      if (![...toChapter.options].some(o => o.value === String(state.formToChapter))) state.formToChapter = String(nextReadingPoint.chapter);
+      const count = calcRangeLength(nextReadingPoint.book, nextReadingPoint.chapter, state.formToBook, Number(state.formToChapter));
+      document.getElementById("rangeCount").textContent = count;
+    }
+
+    function renderCalendar(dailyTotals) {
+      const title = document.getElementById("calendarTitle");
+      title.textContent = `${state.calendarYear} / ${pad(state.calendarMonth + 1)}`;
+      const grid = document.getElementById("calendarGrid");
+      grid.innerHTML = "";
+      const cells = getMonthMatrix(state.calendarYear, state.calendarMonth);
+      cells.forEach(cell => {
+        const ds = dateToStr(cell.date);
+        const btn = document.createElement("button");
+        btn.className = `day ${cell.currentMonth ? "" : "other"} ${ds === state.selectedDate ? "selected" : ""}`.trim();
+        btn.innerHTML = `<div class="date">${cell.date.getDate()}</div><div class="note">${ds < state.settings.trackingStartDate ? "已內建" : ds > state.settings.endDate ? "超出範圍" : (dailyTotals.get(ds) ? `已記錄 ${dailyTotals.get(ds)} 章` : "尚未記錄")}</div>`;
+        btn.onclick = () => {
+          if (ds < state.settings.trackingStartDate || ds > state.settings.endDate) return;
+          state.selectedDate = ds;
+          render();
+        };
+        grid.appendChild(btn);
+      });
+    }
+
+    function renderSelectedEntries(entries) {
+      const list = document.getElementById("selectedDayEntries");
+      list.innerHTML = "";
+      if (!entries.length) {
+        list.innerHTML = `<div class="muted small">這一天還沒有紀錄。</div>`;
+        return;
+      }
+      entries.forEach(e => {
+        const div = document.createElement("div");
+        div.className = "entry-item";
+        div.innerHTML = `<div><div><strong>${e.fromBook} ${e.fromChapter} 章 ～ ${e.toBook} ${e.toChapter} 章</strong></div><div class="small muted">共 ${e.chaptersRead} 章${e.note ? `｜${e.note}` : ""}</div></div>`;
+        const del = document.createElement("button");
+        del.textContent = "刪除";
+        del.onclick = async () => {
+          state.entries = state.entries.filter(x => x.id !== e.id);
+          document.getElementById("formStatus").textContent = "已刪除紀錄。";
+          await maybeAutoSync();
+          render();
+        };
+        div.appendChild(del);
+        list.appendChild(div);
+      });
+    }
+
+    function renderChart(chartData, totalTarget, actualDone) {
+      const ctx = document.getElementById("progressChart");
+      if (chart) chart.destroy();
+      chart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: chartData.map(x => x.date),
+          datasets: [
+            { label: '目標進度線', data: chartData.map(x => x.target), borderColor: '#2563eb', borderWidth: 2.5, pointRadius: 0, tension: 0.2 },
+            { label: '實際進度線', data: chartData.map(x => x.actual), borderColor: '#16a34a', borderWidth: 3, pointRadius: 0, tension: 0.2 },
+            { label: '總目標', data: chartData.map(() => totalTarget), borderColor: '#94a3b8', borderDash: [6, 6], borderWidth: 1.5, pointRadius: 0, tension: 0 }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: true,
+          plugins: { legend: { display: true } },
+          scales: {
+            y: { beginAtZero: true, suggestedMax: Math.max(totalTarget, Math.ceil(actualDone + 20)) },
+            x: { ticks: { maxTicksLimit: 12 } }
+          }
+        }
+      });
+    }
+
+    function renderCloudStatus() {
+      const cloud = state.cloud || {};
+      const ready = cloud.url && cloud.anonKey && cloud.profileKey;
+      document.getElementById("cloudStatusPill").textContent = ready ? `雲端已設定：${cloud.profileKey}` : "雲端未設定";
+      document.getElementById("supabaseUrl").value = cloud.url || "";
+      document.getElementById("supabaseAnonKey").value = cloud.anonKey || "";
+      document.getElementById("profileKey").value = cloud.profileKey || "";
+      document.getElementById("autoSyncCheck").checked = !!cloud.autoSync;
+    }
+
+    async function getSupabaseClient() {
+      const cloud = state.cloud || {};
+      if (!cloud.url || !cloud.anonKey) throw new Error("請先填入 Supabase URL 與 anon key。");
+      return window.supabase.createClient(cloud.url, cloud.anonKey, { auth: { persistSession: false, autoRefreshToken: false } });
+    }
+
+    async function pushCloud() {
+      const client = await getSupabaseClient();
+      const payload = { ...state };
+      const { error } = await client.from("reading_state").upsert({
+        profile_key: state.cloud.profileKey,
+        payload,
+        updated_at: new Date().toISOString()
+      }, { onConflict: "profile_key" });
+      if (error) throw error;
+    }
+
+    async function pullCloud() {
+      const client = await getSupabaseClient();
+      const { data, error } = await client.from("reading_state").select("payload,updated_at").eq("profile_key", state.cloud.profileKey).maybeSingle();
+      if (error) throw error;
+      if (!data || !data.payload) throw new Error("雲端沒有找到這個同步識別碼的資料。");
+      state = mergeState(DEFAULT_STATE, data.payload);
+      saveLocal();
+      render();
+      return data;
+    }
+
+    async function seedCloudFromCurrent() { await pushCloud(); }
+
+    async function maybeAutoSync() {
+      try {
+        if (!state.cloud.autoSync || !state.cloud.url || !state.cloud.anonKey || !state.cloud.profileKey) return;
+        await pushCloud();
+      } catch (e) {
+        document.getElementById("formStatus").textContent = `自動同步失敗：${e.message || e}`;
+      }
+    }
+
+    function exportBackup() {
+      const blob = new Blob([JSON.stringify({ version: 1, exportedAt: new Date().toISOString(), data: state }, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `nt_reading_backup_${todayStr()}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function clearAfterTrackingStart() {
+      if (!confirm("確定要清空 4/5 後的所有紀錄嗎？")) return;
+      state.entries = [];
+      state.selectedDate = state.settings.trackingStartDate;
+      state.calendarYear = 2026;
+      state.calendarMonth = 3;
+      document.getElementById("formStatus").textContent = "已清空 4/5 後紀錄。";
+      render();
+    }
+
+    function bindEvents() {
+      document.getElementById("prevMonthBtn").onclick = () => {
+        const d = new Date(state.calendarYear, state.calendarMonth - 1, 1);
+        state.calendarYear = d.getFullYear();
+        state.calendarMonth = d.getMonth();
+        render();
+      };
+      document.getElementById("nextMonthBtn").onclick = () => {
+        const d = new Date(state.calendarYear, state.calendarMonth + 1, 1);
+        state.calendarYear = d.getFullYear();
+        state.calendarMonth = d.getMonth();
+        render();
+      };
+      document.getElementById("toBook").onchange = (e) => { state.formToBook = e.target.value; render(); };
+      document.getElementById("toChapter").onchange = (e) => { state.formToChapter = e.target.value; render(); };
+      document.getElementById("noteInput").oninput = (e) => { state.note = e.target.value; saveLocal(); };
+      document.getElementById("addEntryBtn").onclick = async () => {
+        const d = getDerived();
+        const rangeLength = calcRangeLength(d.nextReadingPoint.book, d.nextReadingPoint.chapter, state.formToBook, Number(state.formToChapter));
+        if (rangeLength <= 0) {
+          document.getElementById("formStatus").textContent = "請選擇正確的結束章節。";
+          return;
+        }
+        state.entries.push({
+          id: crypto.randomUUID(),
+          date: state.selectedDate,
+          fromBook: d.nextReadingPoint.book,
+          fromChapter: d.nextReadingPoint.chapter,
+          toBook: state.formToBook,
+          toChapter: Number(state.formToChapter),
+          chaptersRead: rangeLength,
+          note: state.note || "",
+          createdAt: new Date().toISOString()
+        });
+        state.note = "";
+        document.getElementById("formStatus").textContent = "已新增紀錄。";
+        await maybeAutoSync();
+        render();
+      };
+      document.getElementById("exportBtn").onclick = exportBackup;
+      document.getElementById("importBtn").onclick = () => document.getElementById("importInput").click();
+      document.getElementById("importInput").onchange = (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+          try {
+            const parsed = JSON.parse(reader.result);
+            const payload = parsed.data || parsed;
+            state = mergeState(DEFAULT_STATE, payload);
+            document.getElementById("formStatus").textContent = "已匯入備份。";
+            render();
+          } catch (err) {
+            document.getElementById("formStatus").textContent = `匯入失敗：${err.message || err}`;
+          }
+        };
+        reader.readAsText(file);
+      };
+      document.getElementById("clearAfterBtn").onclick = clearAfterTrackingStart;
+
+      const backdrop = document.getElementById("cloudModalBackdrop");
+      document.getElementById("cloudSettingBtn").onclick = () => { backdrop.style.display = "flex"; renderCloudStatus(); };
+      document.getElementById("closeCloudBtn").onclick = () => { backdrop.style.display = "none"; };
+      backdrop.onclick = (e) => { if (e.target === backdrop) backdrop.style.display = "none"; };
+      document.getElementById("saveCloudConfigBtn").onclick = () => {
+        state.cloud.url = document.getElementById("supabaseUrl").value.trim();
+        state.cloud.anonKey = document.getElementById("supabaseAnonKey").value.trim();
+        state.cloud.profileKey = document.getElementById("profileKey").value.trim();
+        state.cloud.autoSync = document.getElementById("autoSyncCheck").checked;
+        saveLocal();
+        renderCloudStatus();
+        document.getElementById("cloudStatusText").textContent = "已儲存雲端設定。";
+      };
+      document.getElementById("loadCloudBtn").onclick = async () => {
+        try {
+          state.cloud.url = document.getElementById("supabaseUrl").value.trim();
+          state.cloud.anonKey = document.getElementById("supabaseAnonKey").value.trim();
+          state.cloud.profileKey = document.getElementById("profileKey").value.trim();
+          state.cloud.autoSync = document.getElementById("autoSyncCheck").checked;
+          const data = await pullCloud();
+          document.getElementById("cloudStatusText").textContent = `已從雲端讀取，更新時間：${new Date(data.updated_at).toLocaleString()}`;
+        } catch (e) {
+          document.getElementById("cloudStatusText").textContent = `讀取失敗：${e.message || e}`;
+        }
+      };
+      document.getElementById("seedCloudBtn").onclick = async () => {
+        try {
+          state.cloud.url = document.getElementById("supabaseUrl").value.trim();
+          state.cloud.anonKey = document.getElementById("supabaseAnonKey").value.trim();
+          state.cloud.profileKey = document.getElementById("profileKey").value.trim();
+          state.cloud.autoSync = document.getElementById("autoSyncCheck").checked;
+          await seedCloudFromCurrent();
+          document.getElementById("cloudStatusText").textContent = "已用目前進度初始化雲端。";
+        } catch (e) {
+          document.getElementById("cloudStatusText").textContent = `初始化失敗：${e.message || e}`;
+        }
+      };
+      document.getElementById("disconnectCloudBtn").onclick = () => {
+        state.cloud = { url: "", anonKey: "", profileKey: "", autoSync: false };
+        saveLocal();
+        renderCloudStatus();
+        document.getElementById("cloudStatusText").textContent = "已清除雲端設定。";
+      };
+    }
+
+    bindEvents();
+    render();
+  </script>
+</body>
+</html>
