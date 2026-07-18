@@ -12,6 +12,10 @@
 - 使用 XeLaTeX，支援中文與英文內容。
 - 以 `nchusetup.tex` 集中管理論文題目、作者、指導教授、日期與關鍵字。
 - 內建封面、書名頁、致謝、中文摘要、英文摘要、目錄、表目次、圖目次、參考文獻與附錄入口。
+- 支援 `electronic`（圖書館上傳）與 `print`（紙本裝訂）兩種前置頁模式。
+- 中文封面日期自動轉為中式數字，例如 `2026-08` 顯示為「中華民國一一五年八月」。
+- 提供 `general` 與電機系 `ee` 排版 profile。
+- 提供 Windows 一鍵建置與 PDF preflight，檢查 A4、20 MB、加密、可搜尋文字與字型嵌入。
 - 支援 Windows、Overleaf 與常見 TeX Live 環境的字體 fallback。
 - 內建 GitHub Actions workflow，可在推送與 pull request 時自動編譯範例 PDF。
 
@@ -63,7 +67,23 @@
 
 ### 4. 編譯 PDF
 
-最推薦使用 `latexmk`：
+Windows 可直接使用專案提供的建置腳本：
+
+```powershell
+.\scripts\build.ps1 -Mode electronic -Profile general
+.\scripts\build.ps1 -Mode print -Profile general
+
+# 電機系電子版，並依公告輸出「學號-碩士論文.pdf」
+.\scripts\build.ps1 -Mode electronic -Profile ee -StudentId 712345678
+```
+
+成品會寫入：
+
+- `output/pdf/nchu-thesis-general-electronic.pdf`
+- `output/pdf/nchu-thesis-general-print.pdf`
+- 電機系指定 `-StudentId` 時：`output/pdf/學號-碩士論文.pdf`
+
+其他平台可使用 `latexmk`：
 
 ```bash
 latexmk -xelatex -interaction=nonstopmode -halt-on-error main.tex
@@ -110,11 +130,13 @@ latexmk -C
 
 ```latex
 \documentclass[
-  twoside,
-  openright,
+  oneside,
+  openany,
   degree   = master,
   language = chinese,
   fontset  = system,
+  submission = electronic,
+  profile  = general,
 ]{nchuthesis}
 ```
 
@@ -123,8 +145,12 @@ latexmk -C
 - `degree = master` 或 `doctor`
 - `language = chinese` 或 `english`
 - `fontset = system`、`overleaf`、`template`、`default`
+- `submission = electronic` 或 `print`
+- `profile = general` 或 `ee`
 
 `system` 適合本機編譯，會優先使用 Windows 常見字體並 fallback 到 Noto CJK；`overleaf` 適合 Overleaf 或 Linux/TeX Live 環境。
+
+`ee` profile 依電機系公告設定中文標楷體 13pt、英文 Times New Roman 12pt；若使用其他系所，維持 `general` 並依系所公告確認。
 
 ### 插入圖片
 
@@ -136,6 +162,7 @@ latexmk -C
   \includegraphics[width=0.7\textwidth]{figures/chapter01/example.png}
   \caption{圖片說明}
   \label{fig:example}
+  \figuresource{作者整理，或填寫資料來源}
 \end{figure}
 ```
 
@@ -153,6 +180,7 @@ latexmk -C
     A & B & C \\
     \bottomrule
   \end{tabular}
+  \tablesource{作者整理，或填寫資料來源}
 \end{table}
 ```
 
@@ -201,17 +229,32 @@ xelatex main.tex
 掃描或下載後放在專案根目錄，並在 `main.tex` 啟用：
 
 ```latex
-% \includepdf{a4_approval.pdf}
-% \includepdf{a4_authorization.pdf}
+\includeapprovalpage{a4_approval.pdf}
+\includeauthorizationpage{a4_authorization.pdf}
 ```
 
-這些通常含有個人資料，不建議提交到公開 GitHub repository。
+`main.tex` 已預設呼叫審定書；缺檔時仍可編譯範例，但 log 會警告。授權頁只在 `print` 模式加入。這些檔案通常含有個人資料，不建議提交到公開 GitHub repository。
+
+### 上傳前 PDF preflight
+
+```powershell
+.\scripts\preflight_pdf.ps1 `
+  -PdfPath .\output\pdf\nchu-thesis-general-electronic.pdf `
+  -Mode electronic `
+  -FinalSubmission
+```
+
+`-FinalSubmission` 會額外要求根目錄存在 `a4_approval.pdf`。工具無法判斷題目、姓名、簽章內容是否正確，仍須人工核對。
 
 ## 發佈前檢查清單
 
 - `nchusetup.tex` 的作者、題目、系所、日期與關鍵字皆已更新。
 - `main.tex` 能成功編譯。
+- 電子版未包含紙本封面後的空白頁。
+- 電子版已包含簽妥的審定書；紙本版依規定附授權書。
+- 英文姓名採名在前、姓在後，並與護照拼音一致。
 - 目錄、表目次、圖目次與參考文獻頁碼正常。
+- `preflight_pdf.ps1 -FinalSubmission` 通過。
 - 審核頁、授權頁等個人資料未被 commit 到公開 repository。
 - 已依系所最新公告確認格式要求。
 

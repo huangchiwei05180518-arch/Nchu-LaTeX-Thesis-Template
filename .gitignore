@@ -26,6 +26,8 @@ build.log
 build2.log
 main.pdf
 main.synctex.gz
+/tmp/
+/output/pdf/*.pdf
 
 # Personal scanned forms
 a4_approval.pdf

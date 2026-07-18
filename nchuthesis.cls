@@ -6,7 +6,7 @@
 \NeedsTeXFormat{LaTeX2e}
 
 % 定義類別名稱與敘述
-\ProvidesClass{nchuthesis}[2026/04/26 v2.1 NCHU thesis template]
+\ProvidesClass{nchuthesis}[2026/07/18 v2.2 NCHU thesis template]
 
 % --------------------------------------------------
 % 02 基礎設定（Basic Settings）
@@ -95,6 +95,8 @@
   \define@key{nchu}{degree}{\gdef\nchu@degreeset{##1}}
   \define@key{nchu}{language}{\gdef\nchu@language{##1}}
   \define@key{nchu}{fontset}{\gdef\nchu@fontset{##1}}
+  \define@key{nchu}{submission}{\gdef\nchu@submission{##1}}
+  \define@key{nchu}{profile}{\gdef\nchu@profile{##1}}
   \define@key{nchu}{watermark}{\gdef\nchu@watermark{##1}}
   \define@key{nchu}{doi}{\gdef\nchu@doi{##1}}
   
@@ -118,6 +120,8 @@
 \gdef\nchu@degreeset{master}
 \gdef\nchu@language{chinese}
 \gdef\nchu@fontset{system}
+\gdef\nchu@submission{electronic}
+\gdef\nchu@profile{general}
 \gdef\nchu@watermark{false}
 \gdef\nchu@doi{false}
 \gdef\nchu@university{國立中興大學}
@@ -168,9 +172,12 @@
 \def\nchu@@process@date#1-#2-#3-#4\@nil{%
   \nchu@@date@formatter{#1}{#2}{#3}%
 }
-\newcommand\nchu@date@zh@short[3]{\the\numexpr#1-1911\relax~年~\number#2~月}
-\newcommand\nchu@date@zh@digit[3]{\the\numexpr#1-1911\relax~年~\number#2~月}
-\newcommand\nchu@date@zh@digit@short[3]{\the\numexpr#1-1911\relax~年~\number#2~月}
+\newcommand\nchu@date@zh@short[3]{%
+  \expandafter\CJKnumber\expandafter{\number\numexpr#1-1911\relax}年%
+  \expandafter\CJKnumber\expandafter{\number\numexpr#2\relax}月%
+}
+\newcommand\nchu@date@zh@digit[3]{\nchu@date@zh@short{#1}{#2}{#3}}
+\newcommand\nchu@date@zh@digit@short[3]{\nchu@date@zh@short{#1}{#2}{#3}}
 \newcommand\nchu@date@en@short[3]{\monthname[#2], #1}
 
 \newcommand{\nchu@setgeometry}[1]{\expandafter\newgeometry\expandafter{#1}}
@@ -202,6 +209,31 @@
 % 處理選項並載入基礎文檔
 \ProcessKeyvalOptions*\relax
 \LoadClass[a4paper, 12pt]{report}
+
+% 公開模式判斷，供 main.tex 安排紙本與電子版前置頁。
+\newif\ifnchuprint
+\newif\ifnchuelectronic
+\ifthenelse{\equal{\nchu@submission}{print}}{%
+  \nchuprinttrue
+  \nchuelectronicfalse
+}{%
+  \ifthenelse{\equal{\nchu@submission}{electronic}}{%
+    \nchuprintfalse
+    \nchuelectronictrue
+  }{%
+    \nchu@error{Unknown submission mode '\nchu@submission'. Use electronic or print.}%
+  }%
+}
+
+% 系所 profile。ee 依電機系公告使用中文 13pt、英文 12pt。
+\gdef\nchu@cjkfontscale{1}
+\ifthenelse{\equal{\nchu@profile}{ee}}{%
+  \gdef\nchu@cjkfontscale{1.083333}%
+}{%
+  \ifthenelse{\equal{\nchu@profile}{general}}{}{%
+    \nchu@error{Unknown profile '\nchu@profile'. Use general or ee.}%
+  }%
+}
 
 % 根據設定值賦值變數
 \ifthenelse{\equal{\nchu@degreeset}{master}}{
@@ -336,7 +368,7 @@
 }
 
 \newcommand{\nchu@set@cjkfont}[2]{%
-  \setCJKmainfont{#1}[AutoFakeBold = #2]%
+  \setCJKmainfont{#1}[Scale = \nchu@cjkfontscale, AutoFakeBold = #2]%
   \gdef\nchu@cjkfontname{#1}%
 }
 
@@ -382,19 +414,43 @@
   }%
 }
 
+\newcommand{\nchu@set@cjk@kai}{%
+  \IfFontExistsTF{DFKai-SB}{%
+    \nchu@set@cjkfont{DFKai-SB}{2}%
+  }{%
+    \IfFontExistsTF{BiauKai}{%
+      \nchu@set@cjkfont{BiauKai}{2}%
+    }{%
+      \IfFontExistsTF{KaiTi}{%
+        \nchu@set@cjkfont{KaiTi}{2}%
+      }{%
+        \IfFontExistsTF{FandolKai-Regular}{%
+          \nchu@set@cjkfont{FandolKai-Regular}{2}%
+        }{%
+          \nchu@error{The ee profile requires a Kai font. Install DFKai-SB, BiauKai, KaiTi, or FandolKai.}%
+        }%
+      }%
+    }%
+  }%
+}
+
 \nchu@set@latinfont
 \nchu@set@sansfont
 \nchu@set@monofont
 
-\ifthenelse{\equal{\nchu@fontset}{overleaf}}{%
-  \nchu@set@cjk@noto
+\ifthenelse{\equal{\nchu@profile}{ee}}{%
+  \nchu@set@cjk@kai
 }{%
-  \nchu@set@cjk@system
+  \ifthenelse{\equal{\nchu@fontset}{overleaf}}{%
+    \nchu@set@cjk@noto
+  }{%
+    \nchu@set@cjk@system
+  }%
 }
 
 \newcommand{\nchu@set@cjkmonofont}{%
   \ifx\nchu@cjkfontname\@empty\else
-    \setCJKmonofont{\nchu@cjkfontname}[AutoFakeBold = 2]%
+    \setCJKmonofont{\nchu@cjkfontname}[Scale = \nchu@cjkfontscale, AutoFakeBold = 2]%
   \fi
 }
 \nchu@set@cjkmonofont
@@ -427,6 +483,35 @@
     pdfkeywords={\nchu@keywords}%
   }%
 }
+
+% 發布前常見錯誤：保留範例欄位或中文題目超過校級規範的 60 字。
+\ExplSyntaxOn
+\cs_new_protected:Npn \nchu_validate_metadata:
+  {
+    \tl_set:Nx \l_tmpa_tl
+      {
+        \nchu@institute \nchu@title \nchu@title@en
+        \nchu@author \nchu@author@en \nchu@advisor \nchu@advisor@en
+      }
+    \clist_map_inline:nn
+      { 您的,學程名稱,系所全名,Your~Name,Advisor~Name,Title~of~Your }
+      {
+        \tl_if_in:VnT \l_tmpa_tl { ##1 }
+          {
+            \nchu@warning
+              { Placeholder~metadata~remains~in~nchusetup.tex:~'##1'. }
+          }
+      }
+    \tl_set:Nx \l_tmpa_tl { \nchu@title }
+    \int_compare:nNnT { \tl_count:V \l_tmpa_tl } > { 60 }
+      {
+        \nchu@warning
+          { The~Chinese~title~exceeds~60~characters;~the~official~limit~is~three~lines/60~characters. }
+      }
+  }
+\cs_new_eq:NN \nchu@validatemetadata \nchu_validate_metadata:
+\ExplSyntaxOff
+\AtBeginDocument{\nchu@validatemetadata}
 
 % [目錄格式]
 \addtocontents{toc}{~\hfill\textbf{Page}\par}
@@ -529,10 +614,54 @@
   \clearpage
 }
 
+% 紙本封面後的空白頁；電子論文不得保留此頁。
+\newcommand{\makeblankpage}{%
+  \clearpage
+  \thispagestyle{empty}%
+  \null
+  \clearpage
+}
+
+% 電子論文必須包含審定書；找不到時保留可編譯性並發出醒目警告。
+\newcommand{\includeapprovalpage}[1]{%
+  \IfFileExists{#1}{%
+    \includepdf[pages=-,pagecommand={\thispagestyle{empty}}]{#1}%
+  }{%
+    \ifnchuelectronic
+      \nchu@warning{Approval page '#1' not found. It is required in the final electronic PDF.}%
+    \else
+      \nchu@warning{Approval page '#1' not found. It is required in the final printed thesis.}%
+    \fi
+  }%
+}
+
+% 官方規範要求圖表的資料來源置於下方並靠左。
+\newcommand{\figuresource}[1]{%
+  \par\smallskip
+  \begin{minipage}{\linewidth}\raggedright\small
+    資料來源：#1
+  \end{minipage}%
+}
+\newcommand{\tablesource}[1]{\figuresource{#1}}
+
+% 紙本通常需附授權書影本；依圖書館最新規定與個人授權方式確認。
+\newcommand{\includeauthorizationpage}[1]{%
+  \IfFileExists{#1}{%
+    \includepdf[pages=-,pagecommand={\thispagestyle{empty}}]{#1}%
+  }{%
+    \nchu@warning{Authorization page '#1' not found. Check whether it is required for the printed copy.}%
+  }%
+}
+
+% 電子版只換頁；紙本模式可配合 openright 產生裝訂所需的偶數頁。
+\newcommand{\nchuclearpage}{%
+  \ifnchuprint\cleardoublepage\else\clearpage\fi
+}
+
 % [生成目錄]
 \renewcommand{\contentsname}{\centerline{\nchu@tableofcontents}}
 \newcommand{\maketableofcontents}{
-  \cleardoublepage
+  \nchuclearpage
   \phantomsection
   \addcontentsline{toc}{chapter}{\nchu@tableofcontents}
   \tableofcontents
@@ -540,7 +669,7 @@
 
 \renewcommand{\listfigurename}{\centerline{\nchu@listoffigures}}
 \newcommand{\makelistoffigures}{
-  \cleardoublepage
+  \nchuclearpage
   \phantomsection
   \addcontentsline{toc}{chapter}{\nchu@listoffigures}
   \listoffigures
@@ -548,7 +677,7 @@
 
 \renewcommand{\listtablename}{\centerline{\nchu@listoftables}}
 \newcommand{\makelistoftables}{
-  \cleardoublepage
+  \nchuclearpage
   \phantomsection
   \addcontentsline{toc}{chapter}{\nchu@listoftables}
   \listoftables
@@ -556,7 +685,7 @@
 
 % [正文開始]
 \newcommand{\mainmatter}{
-  \cleardoublepage
+  \nchuclearpage
   \nchu@setgeometry{\nchu@geometry@main}
   \pagenumbering{arabic}
   \fontsize{12}{18}\selectfont
@@ -564,7 +693,7 @@
 
 % [參考文獻]
 \newcommand{\refmatter}{
-  \cleardoublepage
+  \nchuclearpage
   \phantomsection
   \renewcommand{\bibname}{\nchu@bibliography}
   \addcontentsline{toc}{chapter}{\nchu@bibliography}
@@ -601,7 +730,7 @@
 }
 
 \newenvironment{abstract*}{
-  \fontsize{12}{24}\selectfont
+  \fontsize{12}{18}\selectfont
   \chapter*{\centering \nchu@abstract@en}
   \addcontentsline{toc}{chapter}{\nchu@abstract@en}
 }{
@@ -614,7 +743,7 @@
 % 10 文檔處理（Document Processing）
 % --------------------------------------------------
 
-% 設定行距 1.6: 2.0 倍行距
-\setstretch{1.6}
+% 12pt/18pt 為 1.5 倍行距；ee profile 的中文字形另縮放為 13pt。
+\setstretch{1}
 
 \endinput
